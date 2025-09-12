@@ -266,7 +266,7 @@ def graph_arrays(c: SlotCache, graph: str):
 def graph_label(graph: str, prefix: str = "") -> str:
     base = "Flatness" if graph == "flat" else "Thickness"
     if prefix:
-        return f"{prefix}<br>{base}"
+        return f"{prefix} {base}"
     return f"{base}"
 
 
@@ -319,7 +319,7 @@ def mask_outliers(Z: np.ndarray, k: float):
     return Zm
 
 
-def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k: float):
+def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k: float, height: int = 600):
     if Z.size == 0:
         return
     Zg = mask_outliers(Z, mad_k) if do_mask else Z
@@ -336,8 +336,8 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k
                 "usecolormap": True,
                 "highlight": True,
                 "project": {"z": True},
-                "start": vmin,       # lowest value
-                "end": vmax,         # highest value
+                "start": vmin,
+                "end": vmax,
                 "size": (vmax-vmin)/20
             }
         }
@@ -350,7 +350,7 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k
         aspectmode="manual",
         aspectratio=dict(x=1, y=1, z=0.7)
     )
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=600, autosize=True,)
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=height, autosize=True,)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
@@ -545,11 +545,11 @@ with colC:
     profile_mode = st.radio("", ["PRE", "POST", "REMOVAL"], horizontal=True)
 
 # Sidebar options only when REMOVAL is selected
-show_prepost_3d = False
+# show_prepost_3d = False
 overlay_prepost_lines = False
 if profile_mode == "REMOVAL":
     with st.sidebar:
-        show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
+        # show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
         overlay_prepost_lines = st.checkbox("PRE/POST Line charts", value=False)
 
 PRE_DATA = POST_DATA = None
@@ -704,12 +704,8 @@ else:
                     rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
                     plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask, mad_k)
                 with c2:
-                    plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask, mad_k)
-                if show_prepost_3d:
-                    with c1:
-                        plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, mad_k)
-                    with c2:
-                        plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, mad_k)
+                    plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, mad_k, height=300)
+                    plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, mad_k, height=300)
 
                 overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
                 overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
