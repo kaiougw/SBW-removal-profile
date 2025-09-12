@@ -338,7 +338,7 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k
                 "project": {"z": True},
                 "start": vmin,       # lowest value
                 "end": vmax,         # highest value
-                "size": (vmax-vmin)/25
+                "size": (vmax-vmin)/20
             }
         }
         )
