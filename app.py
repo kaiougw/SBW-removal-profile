@@ -329,7 +329,18 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k
             x=X, y=Y, z=Zg,
             surfacecolor=Zc, colorscale="Jet",
             cmin=vmin, cmax=vmax,
-            colorbar=dict(title=zlabel, len=0.8, thickness=15)
+            colorbar=dict(title=zlabel, len=0.8, thickness=15),
+            contours = {
+            "z": {
+                "show": True,
+                "usecolormap": True,
+                "highlight": True,
+                "project": {"z": True},
+                "start": vmin,       # lowest value
+                "end": vmax,         # highest value
+                "size": (vmax-vmin)/25
+            }
+        }
         )
     ])
     fig.update_scenes(
