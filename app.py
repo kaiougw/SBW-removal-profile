@@ -319,7 +319,7 @@ def mask_outliers(Z: np.ndarray, k: float):
     return Zm
 
 
-def plot_surface_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k: float):
+def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k: float):
     if Z.size == 0:
         return
     Zg = mask_outliers(Z, mad_k) if do_mask else Z
@@ -343,7 +343,7 @@ def plot_surface_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: boo
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
-def plot_map_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool, mad_k: float):
+def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool, mad_k: float):
     if Z.size == 0:
         return
     Zg = mask_outliers(Z, mad_k) if do_mask else Z
@@ -437,7 +437,8 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
         row, col = i // ncols + 1, i % ncols + 1
         y = np.asarray(Z_line[i, :], dtype=float)
         x_i, y_i = _finite_xy(r, y)
-        ang = theta[i] if i < len(theta) and np.isfinite(theta[i]) else np.nan
+        ang = np.degrees(theta[i]) if i < len(theta) and np.isfinite(theta[i]) else np.nan
+        label = f"Angle {ang:.1f}°"
 
         if overlay_pre is not None and overlay_pre.size:
             y_pre = np.asarray(overlay_pre[i, :], dtype=float) if i < overlay_pre.shape[0] else np.array([], dtype=float)
@@ -598,14 +599,14 @@ if profile_mode in ("PRE", "POST"):
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    plot_surface_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask, mad_k)
+                    plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask, mad_k)
                 with col2:
-                    plot_map_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask, mad_k)
+                    plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask, mad_k)
 
                 plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650)
 
                 if len(theta) > 0:
-                    angle_options = [f"{a:.2f}" for a in theta]
+                    angle_options = [f"{np.degrees(a):.1f}°" for a in theta]
                     ang_key = f"ang_{profile_mode}_{slot}"
                     if ang_key not in st.session_state:
                         st.session_state[ang_key] = angle_options[0]
@@ -613,7 +614,7 @@ if profile_mode in ("PRE", "POST"):
                     idx = angle_options.index(ang_str)
                     ang = theta[idx]
                     line = Z_line[idx, :]
-                    plot_line_profile(r, line, zlabel, f"Angle {ang:.2f}", height=520)
+                    plot_line_profile(r, line, zlabel, f"Angle {ang:.1f}°", height=520)
 
 
                 st.markdown("---")
@@ -689,16 +690,15 @@ else:
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    plot_surface_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask, mad_k)
-                with c2:
                     rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                    plot_map_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask, mad_k)
-
+                    plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask, mad_k)
+                with c2:
+                    plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask, mad_k)
                 if show_prepost_3d:
                     with c1:
-                        plot_surface_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, mad_k)
+                        plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, mad_k)
                     with c2:
-                        plot_surface_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, mad_k)
+                        plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, mad_k)
 
                 overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
                 overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
@@ -707,7 +707,7 @@ else:
                                overlay_pre=overlay_pre, overlay_post=overlay_post)
 
                 if len(theta) > 0:
-                    angle_options = [f"{a:.2f}" for a in theta]
+                    angle_options = [f"{np.degrees(a):.1f}°" for a in theta]
                     ang_key = f"ang_rem_{pre_slot}_{post_slot}"
                     if ang_key not in st.session_state:
                         st.session_state[ang_key] = angle_options[0]
@@ -718,13 +718,12 @@ else:
                     pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
                     post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
                     plot_line_profile(
-                        r, line, zlabel, f"Angle {ang:.2f}",
+                        r, line, zlabel, f"Angle {ang:.1f}°",
                         height=520,
                         overlay_pre=pre_overlay_line,
                         overlay_post=post_overlay_line
                     )
 
                 st.markdown("---")
-
 
 
