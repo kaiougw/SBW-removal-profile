@@ -469,7 +469,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             ),
             row=row, col=col
         )
-        label = f"Angle {ang:.2f}"
+        label = f"Angle {ang:.1f}°"
         fig.add_annotation(
             text=label,
             showarrow=False,
