@@ -542,7 +542,7 @@ with colC:
         options=[("Thickness", "thk"), ("Flatness", "flat")],
         format_func=lambda x: x[0]
     )[1]
-    profile_mode = st.radio("Profile:", ["PRE", "POST", "REMOVAL"], horizontal=True)
+    profile_mode = st.radio("", ["PRE", "POST", "REMOVAL"], horizontal=True)
 
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
