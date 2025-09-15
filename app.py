@@ -354,7 +354,7 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, heigh
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
-def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool):
+def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool, height: int=600):
     if Z.size == 0:
         return
     Zg = mask_outliers(Z) if do_mask else Z
@@ -383,9 +383,32 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
         aspectmode="data",
         camera=dict(eye=dict(x=0, y=0, z=15), up=dict(x=-1, y=0, z=0))
     )
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0),dragmode="pan", height=600,autosize=True,)
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0),dragmode="pan", height=height, autosize=True,)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
+def _avg_lines(cache_dict: Dict[str, SlotCache], slots: List[str], graph: str):
+    lines = []
+    rs = []
+    thetas = []
+    for s in slots:
+        c = cache_dict.get(s)
+        if not c:
+            continue
+        L, _, _ = graph_arrays(c, graph)
+        if L.size == 0:
+            continue
+        lines.append(L)
+        rs.append(c.r)
+        thetas.append(c.theta)
+    if not lines:
+        return None
+    nt = min(L.shape[0] for L in lines)
+    nr = min(L.shape[1] for L in lines)
+    lines = [L[:nt, :nr] for L in lines]
+    r = rs[0][:nr] if rs else np.array([])
+    theta = thetas[0][:nt] if thetas else np.array([])
+    mean = np.nanmean(np.stack(lines, axis=0), axis=0)
+    return mean, r, theta
 
 def finite_xy(x: np.ndarray, y: np.ndarray):
     m = np.isfinite(x) & np.isfinite(y)
@@ -707,8 +730,25 @@ else:
                     rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
                     plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
                 with c2:
-                    plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
-                    plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                    # plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                    # plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+
+                    view_key = f"show3d_{pre_slot}_{post_slot}"
+                    if view_key not in st.session_state:
+                        st.session_state[view_key] = False
+
+                    label = "◀" if st.session_state[view_key] else "▶"
+
+                    if st.button(label, key=f"btn_{pre_slot}_{post_slot}"):
+                        st.session_state[view_key] = not st.session_state[view_key]
+                        st.rerun() 
+
+                    if st.session_state[view_key]:
+                        plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                        plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                    else:
+                        plot_2d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
+                        plot_2d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
 
                 overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
                 overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
