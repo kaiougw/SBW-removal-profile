@@ -440,7 +440,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     r = np.asarray(r, dtype=float)
     if Z_line.size == 0:
         return
-    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
+    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=False, shared_yaxes=False)
     n = Z_line.shape[0]
     count = min(n, nrows * ncols)
 
@@ -490,12 +490,11 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             row=row, col=col
         )
 
-        if row == nrows:
-            fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
-        if col == 1:
-            fig.update_yaxes(title_text=zlabel, row=row, col=col)
-
     fig.update_layout(showlegend=False, dragmode="pan", height=height)
+    for r_i in range(1, nrows+1):
+        for c_i in range(1, ncols+1):
+            fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
+            fig.update_yaxes(matches="y1", row=r_i, col=c_i, showticklabels=True)
     fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
     fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
