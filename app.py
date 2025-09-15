@@ -431,6 +431,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
         yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False)
     )
+    fig.update_xaxes(autorange="reversed")
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
@@ -496,7 +497,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             fig.update_yaxes(title_text=zlabel, row=row, col=col)
 
     fig.update_layout(showlegend=False, dragmode="pan", height=height)
-    fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
+    fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False, autorange="reversed")
     fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
