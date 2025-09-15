@@ -381,34 +381,10 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
         xaxis_title="Radius (mm)",
         yaxis_title="Radius (mm)",
         aspectmode="data",
-        camera=dict(eye=dict(x=0, y=0, z=15), up=dict(x=-1, y=0, z=0))
+        camera=dict(eye=dict(x=0, y=0, z=12), up=dict(x=-1, y=0, z=0))
     )
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0),dragmode="pan", height=height, autosize=True,)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-
-def _avg_lines(cache_dict: Dict[str, SlotCache], slots: List[str], graph: str):
-    lines = []
-    rs = []
-    thetas = []
-    for s in slots:
-        c = cache_dict.get(s)
-        if not c:
-            continue
-        L, _, _ = graph_arrays(c, graph)
-        if L.size == 0:
-            continue
-        lines.append(L)
-        rs.append(c.r)
-        thetas.append(c.theta)
-    if not lines:
-        return None
-    nt = min(L.shape[0] for L in lines)
-    nr = min(L.shape[1] for L in lines)
-    lines = [L[:nt, :nr] for L in lines]
-    r = rs[0][:nr] if rs else np.array([])
-    theta = thetas[0][:nt] if thetas else np.array([])
-    mean = np.nanmean(np.stack(lines, axis=0), axis=0)
-    return mean, r, theta
 
 def finite_xy(x: np.ndarray, y: np.ndarray):
     m = np.isfinite(x) & np.isfinite(y)
@@ -573,9 +549,12 @@ with colC:
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
 overlay_prepost_lines = False
+avg_removal = False
 if profile_mode == "REMOVAL":
     with st.sidebar:
+        st.markdown("---")
         # show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
+        avg_removal = st.checkbox("Average removal profile", value=False)
         overlay_prepost_lines = st.checkbox("Overlay line charts", value=False)
 
 PRE_DATA = POST_DATA = None
@@ -756,22 +735,40 @@ else:
                 plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650,
                                overlay_pre=overlay_pre, overlay_post=overlay_post)
 
-                if len(theta) > 0:
-                    angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
-                    ang_key = f"ang_rem_{pre_slot}_{post_slot}"
-                    if ang_key not in st.session_state:
-                        st.session_state[ang_key] = angle_options[0]
-                    ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
-                    idx = angle_options.index(ang_str)
-                    ang = theta[idx]
-                    line = Z_line[idx, :]
-                    pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
-                    post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
-                    plot_line_profile(
-                        r, line, zlabel, f"Angle {ang+180:.1f}°",
+                if avg_removal:
+                    y_avg = np.nanmean(Z_line, axis=0) # averaging all lines
+
+                    # replace the single-angle line chart with the average profile
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=r, y=y_avg, mode="lines", name="Average Removal"))
+                    fig.update_layout(
+                        margin=dict(l=30, r=30, t=10, b=30),
+                        xaxis_title="Radius (mm)",
+                        yaxis_title=zlabel,
+                        hovermode="x unified",
+                        dragmode="pan",
                         height=520,
-                        overlay_pre=pre_overlay_line,
-                        overlay_post=post_overlay_line
+                        showlegend=False,
                     )
+                    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+                else:
+                    # single-angle selector + chart
+                    if len(theta) > 0:
+                        angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
+                        ang_key = f"ang_rem_{pre_slot}_{post_slot}"
+                        if ang_key not in st.session_state:
+                            st.session_state[ang_key] = angle_options[0]
+                        ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
+                        idx = angle_options.index(ang_str)
+                        ang = theta[idx]
+                        line = Z_line[idx, :]
+                        pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
+                        post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
+                        plot_line_profile(
+                            r, line, zlabel, f"Angle {ang+180:.1f}°",
+                            height=520,
+                            overlay_pre=pre_overlay_line,
+                            overlay_post=post_overlay_line
+                        )
 
                 st.markdown("---")
