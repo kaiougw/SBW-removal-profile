@@ -392,7 +392,7 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
 
 
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
-                      overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None):
+                      overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
     x, y = finite_xy(-x, y) # -x flips lines horizontally
@@ -415,7 +415,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     if y.size:
         fig.add_trace(go.Scatter(
             x=x, y=y, mode="lines",
-            line=dict(color="red"),
+            line=dict(color="blue" if avg else "red"),
             name="Removal"
         ))
 
@@ -435,7 +435,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
 
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
                    nrows=2, ncols=4, height: int = 650,
-                   overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None):
+                   overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
     r = np.asarray(r, dtype=float)
     if Z_line.size == 0:
         return
@@ -473,7 +473,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             go.Scatter(
                 x=x_i, y=y_i, mode="lines",
                 name="Angle",
-                line=dict(width=1.2, color="red"),
+                line=dict(width=1.2, color="blue" if avg else "red"),
                 showlegend=False,
                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"
             ),
@@ -545,16 +545,14 @@ with colC:
         format_func=lambda x: x[0]
     )[1]
     profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch")
+    avg_profiles = st.checkbox("Average Removal Profile", key="avg_profiles", disabled=(profile_mode != "REMOVAL"))
 
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
 overlay_prepost_lines = False
-avg_removal = False
 if profile_mode == "REMOVAL":
     with st.sidebar:
-        st.markdown("---")
         # show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
-        avg_removal = st.checkbox("Average removal profile", value=False)
         overlay_prepost_lines = st.checkbox("Overlay line charts", value=False)
 
 PRE_DATA = POST_DATA = None
@@ -651,13 +649,13 @@ else:
         c1, c2 = st.columns(2)
         with c1:
             sel_pre = st.multiselect(
-                "PRE slots", pre_labels, default=None,
+                "PRE slots", pre_labels, default=(pre_labels if avg_profiles else None),
                 key="rem_pre_slots", on_change=_clear_flag, args=(plot_key,)
             )
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with c2:
             sel_post = st.multiselect(
-                "POST slots", post_labels, default=None,
+                "POST slots", post_labels, default=(post_labels if avg_profiles else None),
                 key="rem_post_slots", on_change=_clear_flag, args=(plot_key,)
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
@@ -671,91 +669,147 @@ else:
             n_pairs = min(len(pre_keys), len(post_keys))
             if len(pre_keys) != len(post_keys) and n_pairs > 0:
                 st.info(f"Pairing first {n_pairs} slots in order.")
-            for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
-                if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
-                    st.warning("Selected slot missing in cache.")
-                    continue
-                A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
-                r, theta = A_c.r, A_c.theta
-                A_line, A_surf, _ = graph_arrays(A_c, graph)
-                B_line, B_surf, _ = graph_arrays(B_c, graph)
-                if A_line.size == 0 or B_line.size == 0:
-                    st.warning("No overlapping data for removal.")
-                    continue
-                nt = min(A_line.shape[0], B_line.shape[0])
-                nr = min(A_line.shape[1], B_line.shape[1])
-                if nt == 0 or nr == 0:
-                    st.warning("No overlapping data for removal.")
-                    continue
-                r = r[:nr]
-                theta = theta[:nt]
-                Z_line = B_line[:nt, :nr] - A_line[:nt, :nr]
-                Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
-                theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
-                T, Rm = np.meshgrid(theta_full, r, indexing='ij')
-                X = Rm * np.cos(T)
-                Y = Rm * np.sin(T)
-                zlabel = 'Removal (µm)'
+            
+            if avg_profiles and n_pairs > 0:
+                A_lines, B_lines, r_list, t_list = [], [], [], []
+                for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
+                        continue
+                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+                    A_line, _, _ = graph_arrays(A_c, graph)
+                    B_line, _, _ = graph_arrays(B_c, graph)
+                    if A_line.size == 0 or B_line.size == 0:
+                        continue
+                    nt = min(A_line.shape[0], B_line.shape[0])
+                    nr = min(A_line.shape[1], B_line.shape[1])
+                    if nt == 0 or nr == 0:
+                        continue
+                    A_lines.append(A_line[:nt, :nr])
+                    B_lines.append(B_line[:nt, :nr])
+                    r_list.append(A_c.r[:nr])
+                    t_list.append(A_c.theta[:nt])
 
-                pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
-                post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
-                pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
-                post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-
-                st.subheader(f"{graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
-
-                c1, c2 = st.columns(2)
-                with c1:
-                    rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                    plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
-                with c2:
-                    # plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
-                    # plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
-
-                    view_key = f"show3d_{pre_slot}_{post_slot}"
-                    if view_key not in st.session_state:
-                        st.session_state[view_key] = False
-
-                    label = "◀" if st.session_state[view_key] else "▶"
-
-                    if st.button(label, key=f"btn_{pre_slot}_{post_slot}"):
-                        st.session_state[view_key] = not st.session_state[view_key]
-                        st.rerun() 
-
-                    if st.session_state[view_key]:
-                        plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
-                        plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
-                    else:
-                        plot_2d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
-                        plot_2d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
-
-                overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
-                overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
-
-                plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650,
-                               overlay_pre=overlay_pre, overlay_post=overlay_post)
-
-                if avg_removal:
-                    y_avg = np.nanmean(Z_line, axis=0) # averaging all lines
-
-                    # replace the single-angle line chart with the average profile
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=r, y=y_avg, mode="lines", name="Average Removal"))
-                    fig.update_layout(
-                        title=f"Average {graph_label(graph)} Removal Profile",
-                        margin=dict(l=30, r=30, t=100, b=30),
-                        xaxis_title="Radius (mm)",
-                        yaxis_title=zlabel,
-                        hovermode="x unified",
-                        dragmode="pan",
-                        height=600,
-                        showlegend=False,
-                        xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
-                        yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False)
-                    )
-                    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+                if not A_lines:
+                    st.warning("No overlapping data for averaging.")
                 else:
-                    # single-angle selector + chart
+                    nt_g = min(arr.shape[0] for arr in A_lines)
+                    nr_g = min(arr.shape[1] for arr in A_lines)
+                    A_stack = np.stack([arr[:nt_g, :nr_g] for arr in A_lines], axis=0)
+                    B_stack = np.stack([arr[:nt_g, :nr_g] for arr in B_lines], axis=0)
+
+                    A_avg = np.nanmean(A_stack, axis=0)
+                    B_avg = np.nanmean(B_stack, axis=0)
+                    Z_line = B_avg - A_avg
+                    r = r_list[0][:nr_g]
+                    theta = t_list[0][:nt_g]
+
+                    Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
+                    theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
+                    T, Rm = np.meshgrid(theta_full, r, indexing='ij')
+                    X = Rm*np.cos(T)
+                    Y = Rm*np.sin(T)
+                    zlabel = 'Removal (µm)'
+
+                    A_surf = np.vstack([A_avg, A_avg[:, ::-1]])
+                    B_surf = np.vstack([B_avg, B_avg[:, ::-1]])
+                    rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
+
+                    st.subheader(f"Average {graph_label(graph)} Removal Profile")
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
+                    with c2:
+                        view_key = "show3d_avg"
+                        if view_key not in st.session_state:
+                            st.session_state[view_key] = False  # start with 2D
+
+                        label = "◀" if st.session_state[view_key] else "▶"
+                        if st.button(label, key="btn_avg"):
+                            st.session_state[view_key] = not st.session_state[view_key]
+                            st.rerun()
+
+                        if st.session_state[view_key]:
+                            plot_3d(X, Y, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                            plot_3d(X, Y, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                        else:
+                            plot_2d(X, Y, A_surf, graph_label(graph, "PRE"), rmax, p_lo, p_hi, do_mask, height=300)
+                            plot_2d(X, Y, B_surf, graph_label(graph, "POST"), rmax, p_lo, p_hi, do_mask, height=300)
+
+                    plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650, avg=True)
+
+                    if len(theta) > 0:
+                        angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
+                        ang_key = "ang_rem_avg"
+                        if ang_key not in st.session_state:
+                            st.session_state[ang_key] = angle_options[0]
+                        ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
+                        idx = angle_options.index(ang_str)
+                        ang = theta[idx]
+                        line = Z_line[idx, :]
+                        plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True)
+
+                    st.markdown("---")
+
+            if not avg_profiles:
+                for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
+                        st.warning("Selected slot missing in cache.")
+                        continue
+                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+                    r, theta = A_c.r, A_c.theta
+                    A_line, A_surf, _ = graph_arrays(A_c, graph)
+                    B_line, B_surf, _ = graph_arrays(B_c, graph)
+                    if A_line.size == 0 or B_line.size == 0:
+                        st.warning("No overlapping data for removal.")
+                        continue
+                    nt = min(A_line.shape[0], B_line.shape[0])
+                    nr = min(A_line.shape[1], B_line.shape[1])
+                    if nt == 0 or nr == 0:
+                        st.warning("No overlapping data for removal.")
+                        continue
+                    r = r[:nr]
+                    theta = theta[:nt]
+                    Z_line = B_line[:nt, :nr] - A_line[:nt, :nr]
+                    Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
+                    theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
+                    T, Rm = np.meshgrid(theta_full, r, indexing='ij')
+                    X = Rm*np.cos(T)
+                    Y = Rm*np.sin(T)
+                    zlabel = 'Removal (µm)'
+
+                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
+                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+
+                    st.subheader(f"{graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
+                        plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
+                    with c2:
+                        view_key = f"show3d_{pre_slot}_{post_slot}"
+                        if view_key not in st.session_state:
+                            st.session_state[view_key] = False
+                        label = "◀" if st.session_state[view_key] else "▶"
+                        if st.button(label, key=f"btn_{pre_slot}_{post_slot}"):
+                            st.session_state[view_key] = not st.session_state[view_key]
+                            st.rerun()
+                        if st.session_state[view_key]:
+                            plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                            plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                        else:
+                            plot_2d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
+                            plot_2d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
+
+                    overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
+                    overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
+
+                    plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650,
+                                overlay_pre=overlay_pre, overlay_post=overlay_post)
+
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
                         ang_key = f"ang_rem_{pre_slot}_{post_slot}"
@@ -774,4 +828,4 @@ else:
                             overlay_post=post_overlay_line
                         )
 
-                st.markdown("---")
+                    st.markdown("---")
