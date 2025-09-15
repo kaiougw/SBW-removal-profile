@@ -260,7 +260,7 @@ def build_slot_cache(wafer_dict) -> SlotCache:
 
 
 def graph_arrays(c: SlotCache, graph: str):
-    return (c.Flat, c.Flat_mir, 'Flatness<br>(µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness<br>(µm)')
+    return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
 
 def graph_label(graph: str, prefix: str = "") -> str:
@@ -381,13 +381,13 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
         xaxis_title="Radius (mm)",
         yaxis_title="Radius (mm)",
         aspectmode="data",
-        camera=dict(eye=dict(x=0, y=0, z=15))
+        camera=dict(eye=dict(x=0, y=0, z=15), up=dict(x=-1, y=0, z=0))
     )
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0),dragmode="pan", height=600,autosize=True,)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
-def _finite_xy(x: np.ndarray, y: np.ndarray):
+def finite_xy(x: np.ndarray, y: np.ndarray):
     m = np.isfinite(x) & np.isfinite(y)
     return (x[m], y[m]) if m.any() else (np.array([]), np.array([]))
 
@@ -396,18 +396,18 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None):
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
-    x, y = _finite_xy(-x, y) # -x flips lines horizontally
+    x, y = finite_xy(-x, y) # -x flips lines horizontally
 
     fig = go.Figure()
 
     if overlay_pre is not None:
-        _, y_pre = _finite_xy(x, np.asarray(overlay_pre, dtype=float))
+        _, y_pre = finite_xy(x, np.asarray(overlay_pre, dtype=float))
         fig.add_trace(go.Scatter(
             x=x[:y_pre.size], y=y_pre, mode="lines", 
             name="PRE", line=dict(width=1.0, color="lightgray")
         ))
     if overlay_post is not None:
-        _, y_post = _finite_xy(x, np.asarray(overlay_post, dtype=float))
+        _, y_post = finite_xy(x, np.asarray(overlay_post, dtype=float))
         fig.add_trace(go.Scatter(
             x=x[:y_post.size], y=y_post, mode="lines",
             name="POST", line=dict(width=1.0, color="lightgray")
@@ -447,13 +447,13 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     for i in range(count):
         row, col = i // ncols + 1, i % ncols + 1
         y = np.asarray(Z_line[i, :], dtype=float)
-        x_i, y_i = _finite_xy(-r, y) # -r flips lines horizontally
+        x_i, y_i = finite_xy(-r, y) # -r flips lines horizontally
         ang = np.degrees(theta[i]) if i < len(theta) and np.isfinite(theta[i]) else np.nan
         label = f"Angle {ang:.1f}°"
 
         if overlay_pre is not None and overlay_pre.size:
             y_pre = np.asarray(overlay_pre[i, :], dtype=float) if i < overlay_pre.shape[0] else np.array([], dtype=float)
-            x_pre, y_pre = _finite_xy(r, y_pre)
+            x_pre, y_pre = finite_xy(r, y_pre)
             fig.add_trace(
                 go.Scatter(x=x_pre, y=y_pre, mode="lines",
                            line=dict(width=1.0, color="lightgray"),
@@ -462,7 +462,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             )
         if overlay_post is not None and overlay_post.size:
             y_post = np.asarray(overlay_post[i, :], dtype=float) if i < overlay_post.shape[0] else np.array([], dtype=float)
-            x_post, y_post = _finite_xy(r, y_post)
+            x_post, y_post = finite_xy(r, y_post)
             fig.add_trace(
                 go.Scatter(x=x_post, y=y_post, mode="lines",
                            line=dict(width=1.0, color="lightgray"),
@@ -689,7 +689,7 @@ else:
                 T, Rm = np.meshgrid(theta_full, r, indexing='ij')
                 X = Rm * np.cos(T)
                 Y = Rm * np.sin(T)
-                zlabel = 'Removal<br>(µm)'
+                zlabel = 'Removal (µm)'
 
                 pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                 post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
