@@ -396,7 +396,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None):
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
-    x, y = _finite_xy(x, y)
+    x, y = _finite_xy(-x, y) # -x flips lines horizontally
 
     fig = go.Figure()
 
@@ -447,7 +447,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     for i in range(count):
         row, col = i // ncols + 1, i % ncols + 1
         y = np.asarray(Z_line[i, :], dtype=float)
-        x_i, y_i = _finite_xy(r, y)
+        x_i, y_i = _finite_xy(-r, y) # -r flips lines horizontally
         ang = np.degrees(theta[i]) if i < len(theta) and np.isfinite(theta[i]) else np.nan
         label = f"Angle {ang:.1f}°"
 
@@ -624,7 +624,7 @@ if profile_mode in ("PRE", "POST"):
                     idx = angle_options.index(ang_str)
                     ang = theta[idx]
                     line = Z_line[idx, :]
-                    plot_line_profile(r, line, zlabel, f"Angle {ang:.1f}°", height=520)
+                    plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520)
 
 
                 st.markdown("---")
