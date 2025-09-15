@@ -616,7 +616,7 @@ if profile_mode in ("PRE", "POST"):
                 plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650)
 
                 if len(theta) > 0:
-                    angle_options = [f"{np.degrees(a):.1f}°" for a in theta]
+                    angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
                     ang_key = f"ang_{profile_mode}_{slot}"
                     if ang_key not in st.session_state:
                         st.session_state[ang_key] = angle_options[0]
