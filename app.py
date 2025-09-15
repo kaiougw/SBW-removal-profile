@@ -416,7 +416,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     if y.size:
         fig.add_trace(go.Scatter(
             x=x, y=y, mode="lines",
-            line=dict(color="blue"),
+            line=dict(color="red"),
             name="Removal"
         ))
 
@@ -475,7 +475,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             go.Scatter(
                 x=x_i, y=y_i, mode="lines",
                 name="Angle",
-                line=dict(width=1.2, color="blue"),
+                line=dict(width=1.2, color="red"),
                 showlegend=False,
                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"
             ),
