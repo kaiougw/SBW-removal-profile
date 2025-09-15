@@ -239,8 +239,7 @@ def build_slot_cache(wafer_dict) -> SlotCache:
     Rmax = _finite_max(r, 0.0)
 
     if theta.size and r.size:
-        theta_plot = (theta + np.pi) % (2*np.pi) 
-        theta_full = (np.concatenate([theta_plot, theta_plot + np.pi]) % (2*np.pi))
+        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
         Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0))
         Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0))
         T, Rm = np.meshgrid(theta_full, r, indexing='ij')
@@ -684,10 +683,9 @@ else:
                     continue
                 r = r[:nr]
                 theta = theta[:nt]
-                theta_plot = (theta + np.pi) % (2*np.pi)
                 Z_line = B_line[:nt, :nr] - A_line[:nt, :nr]
                 Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
-                theta_full = (np.concatenate([theta_plot, theta_plot + np.pi]) % (2*np.pi))
+                theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
                 T, Rm = np.meshgrid(theta_full, r, indexing='ij')
                 X = Rm * np.cos(T)
                 Y = Rm * np.sin(T)
