@@ -440,7 +440,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     r = np.asarray(r, dtype=float)
     if Z_line.size == 0:
         return
-    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=False, shared_yaxes=False)
+    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
     n = Z_line.shape[0]
     count = min(n, nrows * ncols)
 
@@ -489,6 +489,11 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             font=dict(size=12, color="gray"),
             row=row, col=col
         )
+
+        if row == nrows:
+            fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
+        if col == 1:
+            fig.update_yaxes(title_text=zlabel, row=row, col=col)
 
     fig.update_layout(showlegend=False, dragmode="pan", height=height)
     for r_i in range(1, nrows+1):
