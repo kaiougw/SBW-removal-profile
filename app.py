@@ -449,7 +449,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
         y = np.asarray(Z_line[i, :], dtype=float)
         x_i, y_i = _finite_xy(r, y)
         ang = np.degrees(theta[i]) if i < len(theta) and np.isfinite(theta[i]) else np.nan
-        label = f"Angle {ang:.1f}°"
+        label = f"Angle {ang+180:.1f}°"
 
         if overlay_pre is not None and overlay_pre.size:
             y_pre = np.asarray(overlay_pre[i, :], dtype=float) if i < overlay_pre.shape[0] else np.array([], dtype=float)
@@ -480,7 +480,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             ),
             row=row, col=col
         )
-        label = f"Angle {ang:.1f}°"
+        label = f"Angle {ang+180:.1f}°"
         fig.add_annotation(
             text=label,
             showarrow=False,
@@ -617,7 +617,7 @@ if profile_mode in ("PRE", "POST"):
                 plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650)
 
                 if len(theta) > 0:
-                    angle_options = [f"{np.degrees(a):.1f}°" for a in theta]
+                    angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
                     ang_key = f"ang_{profile_mode}_{slot}"
                     if ang_key not in st.session_state:
                         st.session_state[ang_key] = angle_options[0]
@@ -625,7 +625,7 @@ if profile_mode in ("PRE", "POST"):
                     idx = angle_options.index(ang_str)
                     ang = theta[idx]
                     line = Z_line[idx, :]
-                    plot_line_profile(r, line, zlabel, f"Angle {ang:.1f}°", height=520)
+                    plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520)
 
 
                 st.markdown("---")
@@ -725,7 +725,7 @@ else:
                     pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
                     post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
                     plot_line_profile(
-                        r, line, zlabel, f"Angle {ang:.1f}°",
+                        r, line, zlabel, f"Angle {ang+180:.1f}°",
                         height=520,
                         overlay_pre=pre_overlay_line,
                         overlay_post=post_overlay_line
