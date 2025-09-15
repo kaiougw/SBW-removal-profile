@@ -742,13 +742,16 @@ else:
                     fig = go.Figure()
                     fig.add_trace(go.Scatter(x=r, y=y_avg, mode="lines", name="Average Removal"))
                     fig.update_layout(
-                        margin=dict(l=30, r=30, t=10, b=30),
+                        title=f"Average {graph_label(graph)} Removal Profile",
+                        margin=dict(l=30, r=30, t=100, b=30),
                         xaxis_title="Radius (mm)",
                         yaxis_title=zlabel,
                         hovermode="x unified",
                         dragmode="pan",
-                        height=520,
+                        height=600,
                         showlegend=False,
+                        xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
+                        yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False)
                     )
                     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
                 else:
