@@ -239,7 +239,8 @@ def build_slot_cache(wafer_dict) -> SlotCache:
     Rmax = _finite_max(r, 0.0)
 
     if theta.size and r.size:
-        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
+        theta_plot = (theta + np.pi) % (2*np.pi) 
+        theta_full = (np.concatenate([theta_plot, theta_plot + np.pi]) % (2*np.pi))
         Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0))
         Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0))
         T, Rm = np.meshgrid(theta_full, r, indexing='ij')
@@ -306,7 +307,7 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
     return np.clip(Z, vmin, vmax), vmin, vmax
 
 
-def mask_outliers(Z: np.ndarray, k: float):
+def mask_outliers(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     Zm = Z.astype(float, copy=True)
     Zf = Zm[np.isfinite(Zm)]
     if Zf.size == 0:
@@ -315,14 +316,14 @@ def mask_outliers(Z: np.ndarray, k: float):
     mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826 
     if mad == 0 or not np.isfinite(mad):
         return Zm
-    Zm[np.abs(Zm - med) > k * mad] = np.nan # Distance > k x MAD is marked as outlier; use Outlier threshold to adjust k
+    Zm[np.abs(Zm - med) > k * mad] = np.nan # Distance > k x MAD is marked as outlier
     return Zm
 
 
-def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k: float, height: int = 600):
+def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, height: int = 600):
     if Z.size == 0:
         return
-    Zg = mask_outliers(Z, mad_k) if do_mask else Z
+    Zg = mask_outliers(Z) if do_mask else Z
     Zc, vmin, vmax = robust_clip(Zg, p_lo, p_hi)
     fig = go.Figure(data=[
         go.Surface(
@@ -354,10 +355,10 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, mad_k
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
-def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool, mad_k: float):
+def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool):
     if Z.size == 0:
         return
-    Zg = mask_outliers(Z, mad_k) if do_mask else Z
+    Zg = mask_outliers(Z) if do_mask else Z
     Zc, vmin, vmax = robust_clip(Zg, p_lo, p_hi)
     z0 = np.zeros_like(Zc)
     fig = go.Figure(data=[
@@ -449,7 +450,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
         y = np.asarray(Z_line[i, :], dtype=float)
         x_i, y_i = _finite_xy(r, y)
         ang = np.degrees(theta[i]) if i < len(theta) and np.isfinite(theta[i]) else np.nan
-        label = f"Angle {ang+180:.1f}°"
+        label = f"Angle {ang:.1f}°"
 
         if overlay_pre is not None and overlay_pre.size:
             y_pre = np.asarray(overlay_pre[i, :], dtype=float) if i < overlay_pre.shape[0] else np.array([], dtype=float)
@@ -529,7 +530,6 @@ with st.sidebar:
     if p_hi <= p_lo:
         p_hi = min(100.0, p_lo + 0.5)
     do_mask = st.checkbox("Mask notch", value=False)
-    mad_k = st.slider("Outlier threshold", 2.0, 20.0, 6.0, 0.5) # To adjust outliers masked (lower value = more data points are masked)
 
 colA, colB, colC = st.columns([1, 1, 1])
 with colA:
@@ -550,7 +550,7 @@ overlay_prepost_lines = False
 if profile_mode == "REMOVAL":
     with st.sidebar:
         # show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
-        overlay_prepost_lines = st.checkbox("PRE/POST Line charts", value=False)
+        overlay_prepost_lines = st.checkbox("Overlay line charts", value=False)
 
 PRE_DATA = POST_DATA = None
 PRE_CACHE = POST_CACHE = None
@@ -610,14 +610,14 @@ if profile_mode in ("PRE", "POST"):
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask, mad_k)
+                    plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask)
                 with col2:
-                    plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask, mad_k)
+                    plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
 
                 plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650)
 
                 if len(theta) > 0:
-                    angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
+                    angle_options = [f"{np.degrees(a):.1f}°" for a in theta]
                     ang_key = f"ang_{profile_mode}_{slot}"
                     if ang_key not in st.session_state:
                         st.session_state[ang_key] = angle_options[0]
@@ -625,7 +625,7 @@ if profile_mode in ("PRE", "POST"):
                     idx = angle_options.index(ang_str)
                     ang = theta[idx]
                     line = Z_line[idx, :]
-                    plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520)
+                    plot_line_profile(r, line, zlabel, f"Angle {ang:.1f}°", height=520)
 
 
                 st.markdown("---")
@@ -684,9 +684,10 @@ else:
                     continue
                 r = r[:nr]
                 theta = theta[:nt]
+                theta_plot = (theta + np.pi) % (2*np.pi)
                 Z_line = B_line[:nt, :nr] - A_line[:nt, :nr]
                 Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
-                theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
+                theta_full = (np.concatenate([theta_plot, theta_plot + np.pi]) % (2*np.pi))
                 T, Rm = np.meshgrid(theta_full, r, indexing='ij')
                 X = Rm * np.cos(T)
                 Y = Rm * np.sin(T)
@@ -702,10 +703,10 @@ else:
                 c1, c2 = st.columns(2)
                 with c1:
                     rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                    plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask, mad_k)
+                    plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
                 with c2:
-                    plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, mad_k, height=300)
-                    plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, mad_k, height=300)
+                    plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                    plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
 
                 overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
                 overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
@@ -732,5 +733,3 @@ else:
                     )
 
                 st.markdown("---")
-
-
