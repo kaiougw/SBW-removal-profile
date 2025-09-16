@@ -480,7 +480,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
 
 
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
-                   nrows=2, ncols=4, height: int = 650,
+                   nrows=2, ncols=4, height: int = 600,
                    overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
     r = np.asarray(r, dtype=float)
     Z_line = np.asarray(Z_line, dtype=float)
@@ -546,7 +546,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
         if col == 1:
             fig.update_yaxes(title_text=zlabel, row=row, col=col)
 
-    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=10, b=30))
+    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30))
     for r_i in range(1, nrows+1):
         for c_i in range(1, ncols+1):
             fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
