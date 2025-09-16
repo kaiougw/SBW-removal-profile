@@ -573,7 +573,6 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
         disp.append((f"Slot {ref.get('SlotNo', k)}", k))
     return disp
 
-# >>> NEW: helper to compute average 1D radial profile across all lines (±r)
 def average_radial_profile(Z_line: np.ndarray) -> np.ndarray:
     Z_line = np.asarray(Z_line, dtype=float)
     if Z_line.size == 0:
@@ -606,7 +605,6 @@ with colC:
         format_func=lambda x: x[0]
     )[1]
     profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch")
-    # >>> changed: enable the checkbox
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 
 # Sidebar options only when REMOVAL is selected
