@@ -641,18 +641,54 @@ if profile_mode in ("PRE", "POST"):
 
                             plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650, avg=True)
 
+                            # if len(theta) > 0:
+                            #     angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
+                            #     ang_key = f"ang_{profile_mode}_avg"
+                            #     if ang_key not in st.session_state:
+                            #         st.session_state[ang_key] = angle_options[0]
+                            #     ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
+                            #     idx = angle_options.index(ang_str)
+                            #     ang = theta[idx]
+                            #     line = Z_line[idx, :]
+                            #     plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True)
+
+                            # st.markdown("---")
+
                             if len(theta) > 0:
+                                # keep your existing labels (degrees + 180)
                                 angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
-                                ang_key = f"ang_{profile_mode}_avg"
+                            
+                                ang_key = f"ang_{profile_mode}_avg"        # your existing state key
                                 if ang_key not in st.session_state:
                                     st.session_state[ang_key] = angle_options[0]
-                                ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
-                                idx = angle_options.index(ang_str)
+                            
+                                current_deg = float(st.session_state[ang_key][:-1])
+                            
+                                picked_deg = round_slider(
+                                    value=current_deg,
+                                    min=0, max=180, step=1,          # keep step 1°; adjust if you want finer
+                                    radius=110, width=12,            # visual size; safe defaults
+                                    start_angle=0,                   # 0° at the right; matches your labels (+180 already applied)
+                                    circle_shape="full",             # "pie" also works if you prefer a gauge
+                                    key=f"dial_{ang_key}",           # separate key for the dial itself
+                                )
+                            
+                                # snap the picked angle to the nearest of your discrete options
+                                labels_deg = np.array([float(s[:-1]) for s in angle_options])
+                                diff = (labels_deg - picked_deg + 540) % 360 - 180   # shortest circular difference
+                                idx = int(np.argmin(np.abs(diff)))
+                                ang_str = angle_options[idx]
+                            
+                                # keep your original session key in sync with the snapped label
+                                st.session_state[ang_key] = ang_str
+                            
+                                # use the same downstream logic you already have
                                 ang = theta[idx]
                                 line = Z_line[idx, :]
                                 plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True)
-
+                            
                             st.markdown("---")
+        
                 else:
                     for slot in sel_keys:
                         if slot not in cache:
