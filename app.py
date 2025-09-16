@@ -698,7 +698,7 @@ if profile_mode in ("PRE", "POST"):
                             with col2:
                                 plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
 
-                            plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650, avg=True)
+                            plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=600, avg=True)
 
                             if len(theta) > 0:
                                 angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
@@ -738,7 +738,7 @@ if profile_mode in ("PRE", "POST"):
                         with col2:
                             plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
 
-                        plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650)
+                        plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=600)
 
                         if len(theta) > 0:
                             angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
@@ -863,7 +863,7 @@ else:
 
                     plot_line_grid(
                         r, theta, Z_line, zlabel,
-                        nrows=2, ncols=4, height=650, avg=True,
+                        nrows=2, ncols=4, height=600, avg=True,
                         overlay_pre=overlay_pre, overlay_post=overlay_post
                     )
 
@@ -947,7 +947,7 @@ else:
                     overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
                     overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
 
-                    plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650,
+                    plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=600,
                                 overlay_pre=overlay_pre, overlay_post=overlay_post)
 
                     if len(theta) > 0:
