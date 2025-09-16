@@ -9,6 +9,10 @@ import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from PIL import Image
+import requests
+from io import BytesIO
+
 def safe_get(d: dict, key: str, default=None):
     return d.get(key, default) if isinstance(d, dict) else default
 
@@ -269,6 +273,21 @@ def graph_label(graph: str, prefix: str = "") -> str:
         return f"{prefix} {base}"
     return f"{base}"
 
+def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
+    base = Image.open(BytesIO(requests.get(base_url).content)).convert("RGBA")
+    overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA")
+
+    overlay = overlay.resize((overlay_size, overlay_size*3), Image.LANCZOS)
+
+    overlay = overlay.rotate(rotation_deg, expand=True)
+
+    w, h = base.size
+    pos = ((w - overlay.width) // 2, (h - overlay.height) // 2)
+
+    combined = base.copy()
+    combined.paste(overlay, pos, overlay)
+    return combined
+
 
 @st.cache_data(show_spinner=False)
 def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]:
@@ -399,9 +418,12 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
         return (np.array([]), np.array([]))
     return (x[m], y[m])
 
+waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg"
+arrowimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arrowimg.png"
 
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
-                      overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
+                      overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
+                      waferimg: Optional[str] = None, rotation_deg: float = 0.0):
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
     x, y = finite_xy(-x, y)
@@ -439,7 +461,22 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
         yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False)
     )
-    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+    if waferimg:
+        col_plot, col_img = st.columns([12, 1])
+        with col_plot:
+            st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+        with col_img:
+            combined = overlay_images(
+                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
+                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arrowimg.png",
+                overlay_size=225,
+                rotation_deg=rotation_deg
+            )
+            st.image(combined, width=200)
+
+            st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
+    else:
+        st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
@@ -509,7 +546,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
         if col == 1:
             fig.update_yaxes(title_text=zlabel, row=row, col=col)
 
-    fig.update_layout(showlegend=False, dragmode="pan", height=height)
+    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=10, b=30))
     for r_i in range(1, nrows+1):
         for c_i in range(1, ncols+1):
             fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
@@ -672,7 +709,9 @@ if profile_mode in ("PRE", "POST"):
                                 idx = angle_options.index(ang_str)
                                 ang = theta[idx]
                                 line = Z_line[idx, :]
-                                plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True)
+                                rotation_deg = float(ang_str.replace("°", ""))
+                                plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True,
+                                    waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
 
                             st.markdown("---")
 
@@ -710,7 +749,9 @@ if profile_mode in ("PRE", "POST"):
                             idx = angle_options.index(ang_str)
                             ang = theta[idx]
                             line = Z_line[idx, :]
-                            plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520)
+                            rotation_deg = float(ang_str.replace("°", ""))
+                            plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
+                                waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
 
                         st.markdown("---")
 
@@ -839,10 +880,12 @@ else:
                         pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
                         post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
 
+                        rotation_deg = float(ang_str.replace("°", ""))
                         plot_line_profile(
                             r, line, zlabel, f"Angle {ang+180:.1f}°",
                             height=520, avg=True,
-                            overlay_pre=pre_overlay_line, overlay_post=post_overlay_line
+                            overlay_pre=pre_overlay_line, overlay_post=post_overlay_line,
+                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
                         )
 
 
@@ -916,13 +959,15 @@ else:
                         idx = angle_options.index(ang_str)
                         ang = theta[idx]
                         line = Z_line[idx, :]
+                        rotation_deg = float(ang_str.replace("°", ""))
                         pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
                         post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
                         plot_line_profile(
                             r, line, zlabel, f"Angle {ang+180:.1f}°",
                             height=520,
                             overlay_pre=pre_overlay_line,
-                            overlay_post=post_overlay_line
+                            overlay_post=post_overlay_line,
+                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
                         )
 
                     st.markdown("---")
