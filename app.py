@@ -828,7 +828,6 @@ else:
                             plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
                             plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
 
-                    # 1D removal line (with optional PRE/POST overlays)
                     overlay_pre = A_avg if overlay_prepost_lines else None
                     overlay_post = B_avg if overlay_prepost_lines else None
                     plot_line_profile(
