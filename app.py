@@ -8,7 +8,6 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from streamlit_round_slider import round_slider
 
 def safe_get(d: dict, key: str, default=None):
     return d.get(key, default) if isinstance(d, dict) else default
@@ -308,19 +307,22 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
 
 
 def mask_outliers(Z: np.ndarray, k: float=4): # Outlier threshold = 4
-    Zm = Z.astype(float, copy=True)
-    Zf = Zm[np.isfinite(Zm)]
-    if Zf.size == 0:
+    Zm = np.asarray(Z, dtype=float).copy()
+    m = np.isfinite(Zm)
+    if not m.any():
         return Zm
+    Zf = Zm[m]
     med = float(np.nanmedian(Zf))
-    mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826 
+    mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826
     if mad == 0 or not np.isfinite(mad):
         return Zm
-    Zm[np.abs(Zm - med) > k * mad] = np.nan # Distance > k x MAD is marked as outlier
+    out = np.abs(Zm - med) > (k * mad)
+    Zm[out] = np.nan # Distance > k x MAD is marked as outlier
     return Zm
 
 
 def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, height: int = 600):
+    Z = np.asarray(Z)
     if Z.size == 0:
         return
     Zg = mask_outliers(Z) if do_mask else Z
@@ -331,17 +333,17 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, heigh
             surfacecolor=Zc, colorscale="Jet",
             cmin=vmin, cmax=vmax,
             colorbar=dict(title=zlabel, len=0.8, thickness=15),
-            contours = {
-            "z": {
-                "show": True,
-                "usecolormap": True,
-                "highlight": True,
-                "project": {"z": True},
-                "start": vmin,
-                "end": vmax,
-                "size": (vmax-vmin)/20
+            contours={
+                "z": {
+                    "show": True,
+                    "usecolormap": True,
+                    "highlight": True,
+                    "project": {"z": True},
+                    "start": vmin,
+                    "end": vmax,
+                    "size": (vmax - vmin) / 20 if vmax > vmin else 1.0
+                }
             }
-        }
         )
     ])
     fig.update_scenes(
@@ -351,11 +353,12 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, heigh
         aspectmode="manual",
         aspectratio=dict(x=1, y=1, z=0.7)
     )
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=height, autosize=True,)
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 
 def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool, height: int=600):
+    Z = np.asarray(Z)
     if Z.size == 0:
         return
     Zg = mask_outliers(Z) if do_mask else Z
@@ -371,12 +374,13 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
     ])
     theta = np.linspace(0, 2*np.pi, 200)
     rmax = radius_max if np.isfinite(radius_max) and radius_max > 0 else 0.0
-    cx, cy = rmax * np.cos(theta), rmax * np.sin(theta)
-    fig.add_trace(go.Scatter3d(
-        x=cx, y=cy, z=[0]*len(cx),
-        mode="lines", line=dict(color="black", width=2),
-        showlegend=False
-    ))
+    if rmax > 0:
+        cx, cy = rmax * np.cos(theta), rmax * np.sin(theta)
+        fig.add_trace(go.Scatter3d(
+            x=cx, y=cy, z=[0.0]*cx.size,
+            mode="lines", line=dict(color="black", width=2),
+            showlegend=False
+        ))
     fig.update_scenes(
         zaxis=dict(visible=False),
         xaxis_title="Radius (mm)",
@@ -384,42 +388,46 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
         aspectmode="data",
         camera=dict(eye=dict(x=0, y=0, z=12), up=dict(x=-1, y=0, z=0))
     )
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0),dragmode="pan", height=height, autosize=True,)
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 def finite_xy(x: np.ndarray, y: np.ndarray):
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
     m = np.isfinite(x) & np.isfinite(y)
-    return (x[m], y[m]) if m.any() else (np.array([]), np.array([]))
+    if not m.any():
+        return (np.array([]), np.array([]))
+    return (x[m], y[m])
 
 
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
-    x, y = finite_xy(-x, y) # -x flips lines horizontally
-
+    x, y = finite_xy(-x, y)
     fig = go.Figure()
-
     if overlay_pre is not None:
-        _, y_pre = finite_xy(x, np.asarray(overlay_pre, dtype=float))
-        fig.add_trace(go.Scatter(
-            x=x[:y_pre.size], y=y_pre, mode="lines", 
-            name="PRE", line=dict(width=1.0, color="lightgray")
-        ))
+        y_pre = np.asarray(overlay_pre, dtype=float)
+        _, y_pre = finite_xy(x, y_pre)
+        if y_pre.size:
+            fig.add_trace(go.Scatter(
+                x=x[:y_pre.size], y=y_pre, mode="lines",
+                name="PRE", line=dict(width=1.0, color="lightgray")
+            ))
     if overlay_post is not None:
-        _, y_post = finite_xy(x, np.asarray(overlay_post, dtype=float))
-        fig.add_trace(go.Scatter(
-            x=x[:y_post.size], y=y_post, mode="lines",
-            name="POST", line=dict(width=1.0, color="lightgray")
-        ))
-
+        y_post = np.asarray(overlay_post, dtype=float)
+        _, y_post = finite_xy(x, y_post)
+        if y_post.size:
+            fig.add_trace(go.Scatter(
+                x=x[:y_post.size], y=y_post, mode="lines",
+                name="POST", line=dict(width=1.0, color="lightgray")
+            ))
     if y.size:
         fig.add_trace(go.Scatter(
             x=x, y=y, mode="lines",
             line=dict(color="blue" if avg else "red"),
             name="Removal"
         ))
-
     fig.update_layout(
         margin=dict(l=30, r=30, t=10, b=30),
         xaxis_title="Radius (mm)",
@@ -438,37 +446,43 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
                    nrows=2, ncols=4, height: int = 650,
                    overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
     r = np.asarray(r, dtype=float)
+    Z_line = np.asarray(Z_line, dtype=float)
     if Z_line.size == 0:
         return
     fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
     n = Z_line.shape[0]
     count = min(n, nrows * ncols)
+    theta = np.asarray(theta, dtype=float)
+    angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
+    has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
+    has_post = overlay_post is not None and np.size(overlay_post) != 0
 
     for i in range(count):
         row, col = i // ncols + 1, i % ncols + 1
-        y = np.asarray(Z_line[i, :], dtype=float)
-        x_i, y_i = finite_xy(-r, y) # -r flips lines horizontally
-        ang = np.degrees(theta[i]) if i < len(theta) and np.isfinite(theta[i]) else np.nan
-        label = f"Angle {ang:.1f}°"
+        y = Z_line[i, :]
+        x_i, y_i = finite_xy(-r, y)
+        ang = angs[i] if i < angs.size else np.nan
 
-        if overlay_pre is not None and overlay_pre.size:
-            y_pre = np.asarray(overlay_pre[i, :], dtype=float) if i < overlay_pre.shape[0] else np.array([], dtype=float)
+        if has_pre:
+            y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
             x_pre, y_pre = finite_xy(r, y_pre)
-            fig.add_trace(
-                go.Scatter(x=x_pre, y=y_pre, mode="lines",
-                           line=dict(width=1.0, color="lightgray"),
-                           name="PRE"),
-                row=row, col=col
-            )
-        if overlay_post is not None and overlay_post.size:
-            y_post = np.asarray(overlay_post[i, :], dtype=float) if i < overlay_post.shape[0] else np.array([], dtype=float)
+            if y_pre.size:
+                fig.add_trace(
+                    go.Scatter(x=x_pre, y=y_pre, mode="lines",
+                               line=dict(width=1.0, color="lightgray"),
+                               name="PRE"),
+                    row=row, col=col
+                )
+        if has_post:
+            y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
             x_post, y_post = finite_xy(r, y_post)
-            fig.add_trace(
-                go.Scatter(x=x_post, y=y_post, mode="lines",
-                           line=dict(width=1.0, color="lightgray"),
-                           name="POST"),
-                row=row, col=col
-            )
+            if y_post.size:
+                fig.add_trace(
+                    go.Scatter(x=x_post, y=y_post, mode="lines",
+                               line=dict(width=1.0, color="lightgray"),
+                               name="POST"),
+                    row=row, col=col
+                )
 
         fig.add_trace(
             go.Scatter(
@@ -593,6 +607,14 @@ if profile_mode in ("PRE", "POST"):
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
         if st.button("Plot", key=f"plot_btn_{profile_mode}"):
             st.session_state[plot_key] = True
+
+        prev_key = f"prev_avg_{profile_mode}"
+        if prev_key not in st.session_state:
+            st.session_state[prev_key] = avg_profiles
+        elif st.session_state[prev_key] != avg_profiles:
+            st.session_state[prev_key] = avg_profiles
+            st.session_state[plot_key] = False
+
         if st.session_state.get(plot_key, False):
             if not sel_keys:
                 st.warning("Choose at least one slot.")
@@ -653,7 +675,7 @@ if profile_mode in ("PRE", "POST"):
                                 plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True)
 
                             st.markdown("---")
-        
+
                 else:
                     for slot in sel_keys:
                         if slot not in cache:
