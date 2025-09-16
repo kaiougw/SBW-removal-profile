@@ -8,6 +8,7 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+# from streamlit_round_slider.round_slider import round_slider
 
 def safe_get(d: dict, key: str, default=None):
     return d.get(key, default) if isinstance(d, dict) else default
@@ -545,7 +546,7 @@ with colC:
         format_func=lambda x: x[0]
     )[1]
     profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch")
-    avg_profiles = st.checkbox("Average Removal Profile", key="avg_profiles", disabled=(profile_mode != "REMOVAL"))
+    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
@@ -586,7 +587,7 @@ if profile_mode in ("PRE", "POST"):
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
         plot_key = f"do_plot_{profile_mode}"
-        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
+        sel = st.multiselect("Slots", labels, default=(labels if avg_profiles else None), key=f"{profile_mode}_slots",
                             on_change=_clear_flag, args=(plot_key,))
 
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
@@ -595,43 +596,100 @@ if profile_mode in ("PRE", "POST"):
         if st.session_state.get(plot_key, False):
             if not sel_keys:
                 st.warning("Choose at least one slot.")
-            for slot in sel_keys:
-                if slot not in cache:
-                    st.warning(f"No cache for slot {slot}")
-                    continue
-                c = cache[slot]
-                r, theta = c.r, c.theta
-                Z_line, Z_surf, zlabel = graph_arrays(c, graph)
-                if Z_line.size == 0 or Z_surf.size == 0:
-                    st.warning(f"No data in slot {slot}")
-                    continue
-                X, Y = c.X_mir, c.Y_mir
-                lot = data.get('WaferData', {}).get(slot, {}).get('Lot', data.get('Lot', ''))
-                slotno = data.get('WaferData', {}).get(slot, {}).get('SlotNo', slot)
+            else:
+                if avg_profiles:
+                    lines_list, r_list, t_list = [], [], []
+                    for slot in sel_keys:
+                        if slot not in cache:
+                            continue
+                        c = cache[slot]
+                        Z_line, _, zlabel = graph_arrays(c, graph)
+                        if Z_line.size == 0:
+                            continue
+                        lines_list.append(Z_line)
+                        r_list.append(c.r)
+                        t_list.append(c.theta)
 
-                st.subheader(f"{graph_label(graph)}\n{lot}({slotno})")
+                    if not lines_list:
+                        st.warning("No overlapping data for averaging.")
+                    else:
+                        nt_g = min(arr.shape[0] for arr in lines_list)
+                        nr_g = min(arr.shape[1] for arr in lines_list)
+                        if nt_g == 0 or nr_g == 0:
+                            st.warning("No overlapping data for averaging.")
+                        else:
+                            stack = np.stack([arr[:nt_g, :nr_g] for arr in lines_list], axis=0)
+                            Z_line = np.nanmean(stack, axis=0)
+                            r = r_list[0][:nr_g]
+                            theta = t_list[0][:nt_g]
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask)
-                with col2:
-                    plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
+                            Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
+                            theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
+                            T, Rm = np.meshgrid(theta_full, r, indexing='ij')
+                            X = Rm * np.cos(T)
+                            Y = Rm * np.sin(T)
+                            zlabel = graph_arrays(next(iter(cache.values())), graph)[2]
+                            rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
 
-                plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650)
+                            st.subheader(f"Average {graph_label(graph)}")
 
-                if len(theta) > 0:
-                    angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
-                    ang_key = f"ang_{profile_mode}_{slot}"
-                    if ang_key not in st.session_state:
-                        st.session_state[ang_key] = angle_options[0]
-                    ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
-                    idx = angle_options.index(ang_str)
-                    ang = theta[idx]
-                    line = Z_line[idx, :]
-                    plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520)
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
+                            with col2:
+                                plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
 
+                            plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650, avg=True)
 
-                st.markdown("---")
+                            if len(theta) > 0:
+                                angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
+                                ang_key = f"ang_{profile_mode}_avg"
+                                if ang_key not in st.session_state:
+                                    st.session_state[ang_key] = angle_options[0]
+                                ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
+                                idx = angle_options.index(ang_str)
+                                ang = theta[idx]
+                                line = Z_line[idx, :]
+                                plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True)
+
+                            st.markdown("---")
+                else:
+                    for slot in sel_keys:
+                        if slot not in cache:
+                            st.warning(f"No cache for slot {slot}")
+                            continue
+                        c = cache[slot]
+                        r, theta = c.r, c.theta
+                        Z_line, Z_surf, zlabel = graph_arrays(c, graph)
+                        if Z_line.size == 0 or Z_surf.size == 0:
+                            st.warning(f"No data in slot {slot}")
+                            continue
+                        X, Y = c.X_mir, c.Y_mir
+                        lot = data.get('WaferData', {}).get(slot, {}).get('Lot', data.get('Lot', ''))
+                        slotno = data.get('WaferData', {}).get(slot, {}).get('SlotNo', slot)
+
+                        st.subheader(f"{graph_label(graph)}\n{lot}({slotno})")
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask)
+                        with col2:
+                            plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
+
+                        plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650)
+
+                        if len(theta) > 0:
+                            angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
+                            ang_key = f"ang_{profile_mode}_{slot}"
+                            if ang_key not in st.session_state:
+                                st.session_state[ang_key] = angle_options[0]
+                            ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
+                            idx = angle_options.index(ang_str)
+                            ang = theta[idx]
+                            line = Z_line[idx, :]
+                            plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520)
+
+                        st.markdown("---")
 
 else:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
@@ -736,7 +794,14 @@ else:
                             plot_2d(X, Y, A_surf, graph_label(graph, "PRE"), rmax, p_lo, p_hi, do_mask, height=300)
                             plot_2d(X, Y, B_surf, graph_label(graph, "POST"), rmax, p_lo, p_hi, do_mask, height=300)
 
-                    plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=650, avg=True)
+                    overlay_pre = A_avg if overlay_prepost_lines else None
+                    overlay_post = B_avg if overlay_prepost_lines else None
+
+                    plot_line_grid(
+                        r, theta, Z_line, zlabel,
+                        nrows=2, ncols=4, height=650, avg=True,
+                        overlay_pre=overlay_pre, overlay_post=overlay_post
+                    )
 
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
@@ -747,7 +812,16 @@ else:
                         idx = angle_options.index(ang_str)
                         ang = theta[idx]
                         line = Z_line[idx, :]
-                        plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True)
+
+                        pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
+                        post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
+
+                        plot_line_profile(
+                            r, line, zlabel, f"Angle {ang+180:.1f}°",
+                            height=520, avg=True,
+                            overlay_pre=pre_overlay_line, overlay_post=post_overlay_line
+                        )
+
 
                     st.markdown("---")
 
