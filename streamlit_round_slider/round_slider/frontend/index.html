@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, user-scalable=no"
+  />
+  <!-- round-slider CSS -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/round-slider@1.6.1/dist/roundslider.min.css" />
+  <style>
+    html, body { margin:0; padding:0; }
+    #holder { display:flex; align-items:center; justify-content:center; padding:8px; }
+  </style>
+</head>
+<body>
+  <div id="holder">
+    <div id="angle-slider"></div>
+  </div>
+
+  <!-- jQuery (required by round-slider) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <!-- round-slider JS -->
+  <script src="https://cdn.jsdelivr.net/npm/round-slider@1.6.1/dist/roundslider.min.js"></script>
+  <!-- Streamlit component lib -->
+  <script src="https://unpkg.com/streamlit-component-lib@1.5.0/dist/index.js"></script>
+
+  <script>
+    let inited = false;
+
+    function mountSlider(args) {
+      const defaults = {
+        value: 0, min: 0, max: 360, step: 1,
+        radius: 90, width: 10, startAngle: 0, circleShape: "full"
+      };
+      const opt = Object.assign({}, defaults, args || {});
+
+      if (!inited) {
+        $("#angle-slider").roundSlider({
+          radius: opt.radius,
+          width: opt.width,
+          min: opt.min,
+          max: opt.max,
+          step: opt.step,
+          value: opt.value,
+          circleShape: opt.circleShape,   // "full" or "pie"
+          startAngle: opt.startAngle,     // 0 is to the right (east)
+          handleShape: "dot",
+          sliderType: "min-range",
+          showTooltip: true,
+          editableTooltip: false,
+          drag: function (e) { Streamlit.setComponentValue(e.value); },
+          change: function (e) { Streamlit.setComponentValue(e.value); }
+        });
+        inited = true;
+      } else {
+        // keep options in sync on rerender
+        const api = $("#angle-slider");
+        api.roundSlider("option", "min", opt.min);
+        api.roundSlider("option", "max", opt.max);
+        api.roundSlider("option", "step", opt.step);
+        api.roundSlider("option", "startAngle", opt.startAngle);
+        api.roundSlider("option", "circleShape", opt.circleShape);
+        api.roundSlider("option", "radius", opt.radius);
+        api.roundSlider("option", "width", opt.width);
+        api.roundSlider("setValue", opt.value);
+      }
+      Streamlit.setFrameHeight();
+    }
+
+    function onRender(event) {
+      const data = event.detail;
+      mountSlider(data.args);
+    }
+
+    Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+    Streamlit.setComponentReady();
+    Streamlit.setFrameHeight();
+  </script>
+</body>
+</html>
