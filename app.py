@@ -597,7 +597,7 @@ with colC:
         format_func=lambda x: x[0]
     )[1]
     profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch")
-    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=True) # 
 
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
