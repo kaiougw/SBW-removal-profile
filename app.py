@@ -451,7 +451,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             name="Removal"
         ))
     fig.update_layout(
-        margin=dict(l=30, r=30, t=10, b=30),
+        margin=dict(l=30, r=30, t=30, b=30),
         xaxis_title="Radius (mm)",
         yaxis_title=zlabel,
         hovermode="x unified",
@@ -573,6 +573,15 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
         disp.append((f"Slot {ref.get('SlotNo', k)}", k))
     return disp
 
+# >>> NEW: helper to compute average 1D radial profile across all lines (±r)
+def average_radial_profile(Z_line: np.ndarray) -> np.ndarray:
+    Z_line = np.asarray(Z_line, dtype=float)
+    if Z_line.size == 0:
+        return np.array([])
+    Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # include both halves of every line
+    with np.errstate(all='ignore'):
+        return np.nanmean(Z_full, axis=0)
+
 # UI
 st.set_page_config(page_title="SBW Removal Profile", layout="wide")
 st.title("SBW Removal Profile")
@@ -597,7 +606,8 @@ with colC:
         format_func=lambda x: x[0]
     )[1]
     profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch")
-    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=True) # 
+    # >>> changed: enable the checkbox
+    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
@@ -638,7 +648,7 @@ if profile_mode in ("PRE", "POST"):
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
         plot_key = f"do_plot_{profile_mode}"
-        sel = st.multiselect("Slots", labels, default=(labels if avg_profiles else None), key=f"{profile_mode}_slots",
+        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
                             on_change=_clear_flag, args=(plot_key,))
 
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
@@ -657,64 +667,39 @@ if profile_mode in ("PRE", "POST"):
                 st.warning("Choose at least one slot.")
             else:
                 if avg_profiles:
-                    lines_list, r_list, t_list = [], [], []
                     for slot in sel_keys:
                         if slot not in cache:
+                            st.warning(f"No cache for slot {slot}")
                             continue
                         c = cache[slot]
                         Z_line, _, zlabel = graph_arrays(c, graph)
                         if Z_line.size == 0:
+                            st.warning(f"No data in slot {slot}")
                             continue
-                        lines_list.append(Z_line)
-                        r_list.append(c.r)
-                        t_list.append(c.theta)
 
-                    if not lines_list:
-                        st.warning("No overlapping data for averaging.")
-                    else:
-                        nt_g = min(arr.shape[0] for arr in lines_list)
-                        nr_g = min(arr.shape[1] for arr in lines_list)
-                        if nt_g == 0 or nr_g == 0:
-                            st.warning("No overlapping data for averaging.")
-                        else:
-                            stack = np.stack([arr[:nt_g, :nr_g] for arr in lines_list], axis=0)
-                            Z_line = np.nanmean(stack, axis=0)
-                            r = r_list[0][:nr_g]
-                            theta = t_list[0][:nt_g]
+                        avg_profile = average_radial_profile(Z_line)
+                        if avg_profile.size == 0:
+                            st.warning(f"No data in slot {slot}")
+                            continue
 
-                            Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
-                            theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
-                            T, Rm = np.meshgrid(theta_full, r, indexing='ij')
-                            X = Rm * np.cos(T)
-                            Y = Rm * np.sin(T)
-                            zlabel = graph_arrays(next(iter(cache.values())), graph)[2]
-                            rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
+                        X, Y = c.X_mir, c.Y_mir
+                        nr = min(avg_profile.size, c.r.size)
+                        Z_surf = np.tile(avg_profile[:nr], (X.shape[0], 1))[:, :nr]
+                        X = X[:, :nr]
+                        Y = Y[:, :nr]
 
-                            st.subheader(f"Average {graph_label(graph)}")
+                        lot = data.get('WaferData', {}).get(slot, {}).get('Lot', data.get('Lot', ''))
+                        slotno = data.get('WaferData', {}).get(slot, {}).get('SlotNo', slot)
+                        st.subheader(f"Average {graph_label(graph)}\n{lot}({slotno})")
 
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
-                            with col2:
-                                plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask)
+                        with col2:
+                            plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
 
-                            plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=600, avg=True)
-
-                            if len(theta) > 0:
-                                angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
-                                ang_key = f"ang_{profile_mode}_avg"
-                                if ang_key not in st.session_state:
-                                    st.session_state[ang_key] = angle_options[0]
-                                ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
-                                idx = angle_options.index(ang_str)
-                                ang = theta[idx]
-                                line = Z_line[idx, :]
-                                rotation_deg = float(ang_str.replace("°", ""))
-                                plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520, avg=True,
-                                    waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
-
-                            st.markdown("---")
-
+                        plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True)
+                        st.markdown("---")
                 else:
                     for slot in sel_keys:
                         if slot not in cache:
@@ -727,9 +712,9 @@ if profile_mode in ("PRE", "POST"):
                             st.warning(f"No data in slot {slot}")
                             continue
                         X, Y = c.X_mir, c.Y_mir
+
                         lot = data.get('WaferData', {}).get(slot, {}).get('Lot', data.get('Lot', ''))
                         slotno = data.get('WaferData', {}).get(slot, {}).get('SlotNo', slot)
-
                         st.subheader(f"{graph_label(graph)}\n{lot}({slotno})")
 
                         col1, col2 = st.columns(2)
@@ -771,13 +756,13 @@ else:
         c1, c2 = st.columns(2)
         with c1:
             sel_pre = st.multiselect(
-                "PRE slots", pre_labels, default=(pre_labels if avg_profiles else None),
+                "PRE slots", pre_labels, default=None,
                 key="rem_pre_slots", on_change=_clear_flag, args=(plot_key,)
             )
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with c2:
             sel_post = st.multiselect(
-                "POST slots", post_labels, default=(post_labels if avg_profiles else None),
+                "POST slots", post_labels, default=None,
                 key="rem_post_slots", on_change=_clear_flag, args=(plot_key,)
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
@@ -793,102 +778,66 @@ else:
                 st.info(f"Pairing first {n_pairs} slots in order.")
             
             if avg_profiles and n_pairs > 0:
-                A_lines, B_lines, r_list, t_list = [], [], [], []
                 for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
+                        st.warning("Selected slot missing in cache.")
                         continue
                     A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
                     A_line, _, _ = graph_arrays(A_c, graph)
                     B_line, _, _ = graph_arrays(B_c, graph)
                     if A_line.size == 0 or B_line.size == 0:
+                        st.warning("No overlapping data for removal.")
                         continue
-                    nt = min(A_line.shape[0], B_line.shape[0])
-                    nr = min(A_line.shape[1], B_line.shape[1])
-                    if nt == 0 or nr == 0:
+
+                    nr = min(A_line.shape[1], B_line.shape[1], A_c.r.size, B_c.r.size)
+                    if nr == 0:
+                        st.warning("No overlapping data for removal.")
                         continue
-                    A_lines.append(A_line[:nt, :nr])
-                    B_lines.append(B_line[:nt, :nr])
-                    r_list.append(A_c.r[:nr])
-                    t_list.append(A_c.theta[:nt])
 
-                if not A_lines:
-                    st.warning("No overlapping data for averaging.")
-                else:
-                    nt_g = min(arr.shape[0] for arr in A_lines)
-                    nr_g = min(arr.shape[1] for arr in A_lines)
-                    A_stack = np.stack([arr[:nt_g, :nr_g] for arr in A_lines], axis=0)
-                    B_stack = np.stack([arr[:nt_g, :nr_g] for arr in B_lines], axis=0)
+                    A_avg = average_radial_profile(A_line)[:nr]
+                    B_avg = average_radial_profile(B_line)[:nr]
+                    Z_avg = B_avg - A_avg  # removal radial profile
 
-                    A_avg = np.nanmean(A_stack, axis=0)
-                    B_avg = np.nanmean(B_stack, axis=0)
-                    Z_line = B_avg - A_avg
-                    r = r_list[0][:nr_g]
-                    theta = t_list[0][:nt_g]
+                    XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
+                    XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
+                    ZA = np.tile(A_avg, (XA.shape[0], 1))
+                    ZB = np.tile(B_avg, (XB.shape[0], 1))
+                    XZ, YZ = XA, YA
+                    Zrem = np.tile(Z_avg, (XZ.shape[0], 1))
 
-                    Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
-                    theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
-                    T, Rm = np.meshgrid(theta_full, r, indexing='ij')
-                    X = Rm*np.cos(T)
-                    Y = Rm*np.sin(T)
-                    zlabel = 'Removal (µm)'
-
-                    A_surf = np.vstack([A_avg, A_avg[:, ::-1]])
-                    B_surf = np.vstack([B_avg, B_avg[:, ::-1]])
-                    rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-
-                    st.subheader(f"Average {graph_label(graph)} Removal Profile")
+                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
+                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+                    st.subheader(f"Average {graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
 
                     c1, c2 = st.columns(2)
                     with c1:
-                        plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
+                        plot_2d(XZ, YZ, Zrem, 'Removal (µm)', A_c.Rmax, p_lo, p_hi, do_mask)
                     with c2:
-                        view_key = "show3d_avg"
+                        view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
                         if view_key not in st.session_state:
                             st.session_state[view_key] = False  # start with 2D
-
                         label = "◀" if st.session_state[view_key] else "▶"
-                        if st.button(label, key="btn_avg"):
+                        if st.button(label, key=f"btn_avg_pair_{pre_slot}_{post_slot}"):
                             st.session_state[view_key] = not st.session_state[view_key]
                             st.rerun()
 
                         if st.session_state[view_key]:
-                            plot_3d(X, Y, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
-                            plot_3d(X, Y, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                            plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                            plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
                         else:
-                            plot_2d(X, Y, A_surf, graph_label(graph, "PRE"), rmax, p_lo, p_hi, do_mask, height=300)
-                            plot_2d(X, Y, B_surf, graph_label(graph, "POST"), rmax, p_lo, p_hi, do_mask, height=300)
+                            plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
+                            plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
 
+                    # 1D removal line (with optional PRE/POST overlays)
                     overlay_pre = A_avg if overlay_prepost_lines else None
                     overlay_post = B_avg if overlay_prepost_lines else None
-
-                    plot_line_grid(
-                        r, theta, Z_line, zlabel,
-                        nrows=2, ncols=4, height=600, avg=True,
+                    plot_line_profile(
+                        A_c.r[:nr], Z_avg, 'Removal (µm)', "",
+                        height=520, avg=True,
                         overlay_pre=overlay_pre, overlay_post=overlay_post
                     )
-
-                    if len(theta) > 0:
-                        angle_options = [f"{np.degrees(a)+180:.1f}°" for a in theta]
-                        ang_key = "ang_rem_avg"
-                        if ang_key not in st.session_state:
-                            st.session_state[ang_key] = angle_options[0]
-                        ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
-                        idx = angle_options.index(ang_str)
-                        ang = theta[idx]
-                        line = Z_line[idx, :]
-
-                        pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
-                        post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
-
-                        rotation_deg = float(ang_str.replace("°", ""))
-                        plot_line_profile(
-                            r, line, zlabel, f"Angle {ang+180:.1f}°",
-                            height=520, avg=True,
-                            overlay_pre=pre_overlay_line, overlay_post=post_overlay_line,
-                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
-                        )
-
-
                     st.markdown("---")
 
             if not avg_profiles:
