@@ -423,31 +423,47 @@ arrowimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arr
 
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
-                      waferimg: Optional[str] = None, rotation_deg: float = 0.0):
+                      waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
-    x, y = finite_xy(-x, y)
+    x_full = np.asarray(r, dtype=float)
+    y_full = np.asarray(line, dtype=float)
+    if positive_only:
+        m = (x_full >= 0) & np.isfinite(y_full)
+        x = x_full[m]
+        y = y_full[m]
+    else:
+        x, y = finite_xy(-x_full, y_full)
     fig = go.Figure()
     if overlay_pre is not None:
         y_pre = np.asarray(overlay_pre, dtype=float)
-        _, y_pre = finite_xy(x, y_pre)
+        if positive_only and y_pre.size == y_full.size:
+            y_pre = y_pre[m]
+        y_pre = y_pre[:x.size]
+        x_pre = x[:y_pre.size]
+        x_pre, y_pre = finite_xy(x_pre, y_pre)
         if y_pre.size:
             fig.add_trace(go.Scatter(
-                x=x[:y_pre.size], y=y_pre, mode="lines",
+                x=x_pre, y=y_pre, mode="lines",
                 name="PRE", line=dict(width=1.0, color="lightgray")
             ))
+
     if overlay_post is not None:
         y_post = np.asarray(overlay_post, dtype=float)
-        _, y_post = finite_xy(x, y_post)
+        if positive_only and y_post.size == y_full.size:
+            y_post = y_post[m]
+        y_post = y_post[:x.size]
+        x_post = x[:y_post.size]
+        x_post, y_post = finite_xy(x_post, y_post)
         if y_post.size:
             fig.add_trace(go.Scatter(
-                x=x[:y_post.size], y=y_post, mode="lines",
+                x=x_post, y=y_post, mode="lines",
                 name="POST", line=dict(width=1.0, color="lightgray")
             ))
     if y.size:
         fig.add_trace(go.Scatter(
             x=x, y=y, mode="lines",
-            line=dict(color="blue" if avg else "red"),
+            line=dict(color="red"),
             name="Removal"
         ))
     fig.update_layout(
@@ -525,7 +541,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             go.Scatter(
                 x=x_i, y=y_i, mode="lines",
                 name="Angle",
-                line=dict(width=1.2, color="blue" if avg else "red"),
+                line=dict(width=1.2, color="red"),
                 showlegend=False,
                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"
             ),
@@ -696,7 +712,7 @@ if profile_mode in ("PRE", "POST"):
                         with col2:
                             plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
 
-                        plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True)
+                        plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
                         st.markdown("---")
                 else:
                     for slot in sel_keys:
@@ -833,7 +849,7 @@ else:
                     plot_line_profile(
                         A_c.r[:nr], Z_avg, 'Removal (µm)', "",
                         height=520, avg=True,
-                        overlay_pre=overlay_pre, overlay_post=overlay_post
+                        overlay_pre=overlay_pre, overlay_post=overlay_post, positive_only=True
                     )
                     st.markdown("---")
 
