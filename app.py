@@ -405,7 +405,7 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
         xaxis_title="Radius (mm)",
         yaxis_title="Radius (mm)",
         aspectmode="data",
-        camera=dict(eye=dict(x=0, y=0, z=12), up=dict(x=-1, y=0, z=0))
+        camera=dict(eye=dict(x=0, y=0, z=11), up=dict(x=-1, y=0, z=0))
     )
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
