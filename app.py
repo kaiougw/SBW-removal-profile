@@ -810,7 +810,7 @@ else:
 
                     A_avg = average_radial_profile(A_line)[:nr]
                     B_avg = average_radial_profile(B_line)[:nr]
-                    Z_avg = B_avg - A_avg # Average POST - Average PRE
+                    Z_avg = A_avg - B_avg # Average POST - Average PRE
 
                     XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
                     XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
