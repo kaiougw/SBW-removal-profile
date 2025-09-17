@@ -810,7 +810,7 @@ else:
 
                     A_avg = average_radial_profile(A_line)[:nr]
                     B_avg = average_radial_profile(B_line)[:nr]
-                    Z_avg = A_avg - B_avg #*** Average PRE - Average POST
+                    Z_avg = A_avg - B_avg # Average PRE - Average POST
 
                     XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
                     XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
@@ -872,7 +872,7 @@ else:
                         continue
                     r = r[:nr]
                     theta = theta[:nt]
-                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr] #*** PRE - POST
+                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr] # PRE - POST
                     Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
                     theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
                     T, Rm = np.meshgrid(theta_full, r, indexing='ij')
