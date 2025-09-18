@@ -14,37 +14,36 @@ import requests
 from io import BytesIO
 
 
-'''Utility Functions'''
-def safe_get(d: dict, key: str, default=None):
-# Get a value from a dict. Returns default if key is missing or d is not a dict.
-    return d.get(key, default) if isinstance(d, dict) else default
-
+# Utility Functions
 def floatlist(a) -> list:
-    """Convert input array-like to flat Python list of floats."""
+# Converts array-like input into flat list of floats to ensure numbers are in numeric, not str or int
+# Called inside `cleansbw` for Radius and Angle
     return np.asarray(a, dtype=float).ravel().tolist()
 
 def floatlist2d(a) -> list:
-    """Convert input array-like to 2D Python list of floats. Guarantees shape (n,1) if input is 1D."""
+# Converts array-like input into 2D list of floats to ensure numbers are in numeric, not str or int
+# Called inside `cleansbw` for Profile to preserve its 2D structure ([thickness, flatness] for each radius)
     a = np.asarray(a, dtype=float)
     if a.ndim == 1:
-        a = a[:, None]
+        a = a[:, None] # convert shape (N,) → (N,1)
     return a.tolist()
 
-def _clear_flag(flag_key: str):
-    """Helper to reset a Streamlit session state flag."""
-    st.session_state[flag_key] = False
+def reset_plot(flag_key: str):
+# A reset switch to control session state
+# Changing slots resets session state, requiring Plot button to be pressed again
+    st.session_state[flag_key] = False # False -> no plotting until Plot button is pressed
 
-def sorted_keys(d):
-    """Return sorted dictionary keys as floats if possible, otherwise strings."""
+def sort_keys(d): # d = WaferData
+# Sorts dictionary keys (slot IDs) as floats if possible, otherwise strings
     try:
         return sorted(d.keys(), key=lambda k: float(k))
     except Exception:
         return sorted(d.keys(), key=str)
 
 def finite_xy(x: np.ndarray, y: np.ndarray):
-# Filter out non-finite (NaN/Inf) pairs from x and y
+# Removes non-finite (NaN/Inf) pairs from x and y
 # Input: x, y (1D arrays)
-# Output: (x_filtered, y_filtered) as NumPy arrays
+# Output: (x_filtered, y_filtered) as arrays
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     m = np.isfinite(x) & np.isfinite(y)
@@ -52,20 +51,20 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
         return (np.array([]), np.array([]))
     return (x[m], y[m])
 
-def average_radial_profile(Z_line: np.ndarray) -> np.ndarray:
-# Compute average radial profile by combining both +r and -r sides
-# Input: Z_line (2D array, shape (n_lines, n_radii))
+def average_profile(Z_line: np.ndarray) -> np.ndarray:
+# Computes average radial profile by combining both +r and -r sides
+# Input: Z_line (2D array with shape (n_lines, n_radii))
 # Output: 1D NumPy array of averaged values across all lines and mirrored halves
-    Z_line = np.asarray(Z_line, dtype=float)
+    Z_line = np.asarray(Z_line, dtype=float) 
     if Z_line.size == 0:
         return np.array([])
-    Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # mirror each line
+    Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # stacks original (+r) and mirrored (-r) arrays vertically
     with np.errstate(all='ignore'):
         return np.nanmean(Z_full, axis=0)
 
 # SBW File Parsing and Cleaning
 class sbwinfo(object):
-    """Container for parsed SBW data."""
+# Container for parsed SBW data
     MachineName = ''
     ProductNo = ''
     RecipeName = ''
@@ -78,7 +77,7 @@ class sbwinfo(object):
         self.Lot = Lot
 
 def parsesbw(sbwfile: str) -> sbwinfo:
-# Parse .sbw file into sbwinfo object
+# Parses .sbw file into sbwinfo object
     sbw = sbwinfo()
     if not os.path.exists(sbwfile):
         raise Exception("Invalid sbw File Path!")
@@ -187,7 +186,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
     return sbw
 
 def cleansbw(sbwfile) -> Dict[str, Any]:
-# Convert sbwinfo object into a cleaned dictionary 
+# Converts sbwinfo object (output of parsesbw()) into a cleaned dictionary 
     lot = getattr(sbwfile, 'Lot', '')
     wd_src = getattr(sbwfile, 'WaferData', {}) or {}
     wd_dst: Dict[str, Any] = {}
@@ -207,10 +206,9 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
         }
     return {'Lot': lot, 'WaferData': wd_dst}
 
-@st.cache_data(show_spinner=False)
-def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]:
-    """Helper for Streamlit file uploader. Takes raw bytes from upload,
-    parses and cleans .sbw file, and returns cleaned dict format."""
+@st.cache_data(show_spinner=False) # Caches results of this function
+def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]: #***
+# Parses and cleans .sbw file, and returns cleaned dict format
     import tempfile
     obj = None
     with tempfile.NamedTemporaryFile(delete=False, suffix=".sbw") as tmp:
@@ -225,18 +223,17 @@ def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]:
         except Exception:
             pass
 
-'''Wafer Grid & Slot Caching'''
-def gridThk(wafer):
-    """Build 2D thickness grid from wafer dict.
-    Input: wafer dict containing Radius, Angle, Profiles.
-    Output: (r, theta, Thk) where Thk is 2D array shape (ntheta, nradius).
-    """
+# Wafer Grid & Slot Caching
+def Thkmatrix(wafer): 
+# Build 2D thickness matrix with rows = Angle, columns = Radius
+# Input: wafer dict containing Radius, Angle, Profiles
+# Output: (r, theta, Thk) where Thk is 2D array shape (n_theta, n_radius)
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
     profiles = wafer.get('Profiles', [])
     nt, nr = len(theta), len(r)
     Thk = np.full((nt, nr), np.nan, dtype=float)
-    for i in range(nt):
+    for i in range(nt): # loop over each angle i and get corresponding Thk at every r
         line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
         if line.ndim == 2 and line.shape[1] > 0:
             Thk[i, :min(nr, line.shape[0])] = line[:nr, 0]
@@ -244,17 +241,16 @@ def gridThk(wafer):
             Thk[i, :min(nr, line.size)] = line.ravel()[:nr]
     return r, theta, Thk
 
-def gridFlat(wafer):
-    """Build 2D flatness grid from wafer dict.
-    Input: wafer dict containing Radius, Angle, Profiles.
-    Output: (r, theta, Flat) where Flat is 2D array shape (ntheta, nradius).
-    """
+def Flatmatrix(wafer):
+# Build 2D flatness matrix with rows = Angle, columns = Radius
+# Input: wafer dict containing Radius, Angle, Profiles
+# Output: (r, theta, Flat) where Flat is 2D array shape (ntheta, nradius)
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
     profiles = wafer.get('Profiles', [])
     nt, nr = len(theta), len(r)
     Flat = np.full((nt, nr), np.nan, dtype=float)
-    for i in range(nt):
+    for i in range(nt): # loop over each angle i and get corresponding Flat at every r
         line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
         if line.ndim == 2 and line.shape[1] > 1:
             Flat[i, :min(nr, line.shape[0])] = line[:nr, 1]
@@ -264,44 +260,32 @@ def gridFlat(wafer):
 
 @dataclass
 class SlotCache:
-    """Cache object containing precomputed arrays for each slot."""
+# Cache object containing precomputed arrays for each slot
     r: np.ndarray
     theta: np.ndarray
     Thk: np.ndarray
     Flat: np.ndarray
-    line_min_thk: float
-    line_max_thk: float
-    line_min_flat: float
-    line_max_flat: float
     Rmax: float
     X_mir: np.ndarray
     Y_mir: np.ndarray
     Thk_mir: np.ndarray
     Flat_mir: np.ndarray
 
-def finite_minmax(arr: np.ndarray, default: Tuple[float, float] = (0.0, 0.0)) -> Tuple[float, float]:
-    """Return (min, max) of finite values in array, or default if empty."""
-    af = arr[np.isfinite(arr)]
-    if af.size == 0:
-        return default
-    return float(np.min(af)), float(np.max(af))
-
 def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
-    """Return max of finite values in array, or default if empty."""
+# Returns max of finite values in array, default if empty
+# Used to find Rmax, which is used to draw wafer outline (line 430-439)
     af = arr[np.isfinite(arr)]
     return float(np.max(af)) if af.size else default
 
 def build_slot_cache(wafer_dict) -> SlotCache:
-    """Build SlotCache from wafer_dict. Precomputes mirrored data for plotting."""
-    r, theta, Thk = gridThk(wafer_dict)
-    _, _, Flat = gridFlat(wafer_dict)
-    lmin_Thk, lmax_Thk = finite_minmax(Thk, (0.0, 0.0))
-    lmin_Flat, lmax_Flat = finite_minmax(Flat, (0.0, 0.0))
+# Takes wafer_dict and builds SlotCache 
+    r, theta, Thk = Thkmatrix(wafer_dict) # Thickness matrix
+    _, _, Flat = Flatmatrix(wafer_dict) # Flatness matrix
     Rmax = finite_max(r, 0.0)
     if theta.size and r.size:
-        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
-        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0))
-        Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0))
+        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi)) # extends theta by mirroring it across wafer (theta + 180) and % 2pi ensures angles stay in [0,2pi]
+        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0)) #***
+        Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0)) #***
         T, Rm = np.meshgrid(theta_full, r, indexing='ij')
         X_mir = Rm*np.cos(T)
         Y_mir = Rm*np.sin(T)
@@ -312,32 +296,28 @@ def build_slot_cache(wafer_dict) -> SlotCache:
         Y_mir = np.empty((0, 0))
     return SlotCache(
         r=r, theta=theta, Thk=Thk, Flat=Flat,
-        line_min_thk=lmin_Thk, line_max_thk=lmax_Thk,
-        line_min_flat=lmin_Flat, line_max_flat=lmax_Flat,
         Rmax=Rmax, X_mir=X_mir, Y_mir=Y_mir, Thk_mir=Thk_full, Flat_mir=Flat_full
     )
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False) # Caches results of this function
 def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
     """Build cache for all slots from cleaned wafer data."""
     wafers = data.get('WaferData', {}) or {}
     return {k: build_slot_cache(w) for k, w in wafers.items()}
 
 
-'''Plot Utilities'''
+# Plot Utilities
 def graph_arrays(c: SlotCache, graph: str):
-    """Return (Z_line, Z_surf, label) depending on graph type ('thk' or 'flat')."""
     return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
 def graph_label(graph: str, prefix: str = "") -> str:
-    """Return label string for graph type."""
     base = "Flatness" if graph == "flat" else "Thickness"
     if prefix:
         return f"{prefix} {base}"
     return f"{base}"
 
 def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
-    """Clip array values between percentiles p_lo and p_hi. Returns (clipped_array, vmin, vmax)."""
+# Clip values between p_lo (lowest percentile) and p_hi (highest percentile)
     Zf = Z[np.isfinite(Z)]
     if Zf.size == 0:
         return Z, 0.0, 1.0
@@ -365,9 +345,9 @@ def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     Zm[out] = np.nan
     return Zm
 
-'''Image Overlay (for Line Scanning Direction)'''
+# Image Overlay (for Line Scanning Direction)
 def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
-# Overlay overlay_url on base_url
+# Overlay arrow on wafer image and rotate by rotation_deg
     base = Image.open(BytesIO(requests.get(base_url).content)).convert("RGBA") # waferimg
     overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA") # arrowimg
     overlay = overlay.resize((overlay_size, overlay_size*3), Image.LANCZOS)
@@ -379,7 +359,7 @@ def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rota
     return combined
 
 
-'''Plotting Functions'''
+# Plotting Functions
 def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, mask: bool, height: int = 600):
 # Inputs:
     # X,Y,Z: 2D arrays of coordinates and surface values
@@ -477,12 +457,12 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     # title
     # height
     # overlay_pre, overlay_post
-    # avg: Average Profile checkbox checked -> True
+    # avg: True if Average Profile checkbox checked
     # waferimg: wafer image
     # rotation_deg: rotation for arrow image
     # positive_only: if True, only plot r>=0
 # Output:
-    # Line chart in Streamlit
+    # Line chart of a single angle in Streamlit
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
     x_full = np.asarray(r, dtype=float)
@@ -557,25 +537,23 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
                    nrows=2, ncols=4, height: int = 600,
                    overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
-    """Plot multiple line profiles in a grid layout.
-    Inputs:
-        r       : 1D radii
-        theta   : 1D angles
-        Z_line  : 2D array (n_theta, n_radii)
-        zlabel  : y-axis label
-        nrows, ncols : subplot grid size
-        overlay_pre, overlay_post : optional PRE/POST overlays
-        avg     : whether this is average profile
-    Output:
-        Streamlit renders grid of line profile subplots
-    """
+# Inputs:
+    # r: 1D radii
+    # theta: 1D angles
+    # Z_line: 2D array (n_theta, n_radii)
+    # zlabel: y-axis label
+    # nrows, ncols: subplot grid size
+    # overlay_pre, overlay_post: optional PRE/POST overlays
+    # avg: True if Average Profile selected
+# Output:
+    # Line profile charts in Streamlit
     r = np.asarray(r, dtype=float)
     Z_line = np.asarray(Z_line, dtype=float)
     if Z_line.size == 0:
         return
     fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
     n = Z_line.shape[0]
-    count = min(n, nrows * ncols)
+    count = min(n, nrows*ncols)
     theta = np.asarray(theta, dtype=float)
     angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
     has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
@@ -623,16 +601,17 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
 
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
+# Return a list of Slot #'s for user to select in dropdown
     if not data:
         return []
     disp = []
     wafers = data.get('WaferData', {}) or {}
-    for k in sorted_keys(wafers):
+    for k in sort_keys(wafers):
         ref = wafers.get(k, {}) or {}
         disp.append((f"Slot {ref.get('SlotNo', k)}", k))
     return disp
 
-'''UI'''
+# UI
 st.set_page_config(page_title="SBW Removal Profile", layout="wide")
 st.title("SBW Removal Profile")
 
@@ -687,6 +666,7 @@ if post_file is not None:
 
 st.markdown("---")
 
+# profile_mode == PRE or POST:
 if profile_mode in ("PRE", "POST"):
     data = PRE_DATA if profile_mode == "PRE" else POST_DATA
     cache = PRE_CACHE if profile_mode == "PRE" else POST_CACHE
@@ -698,7 +678,7 @@ if profile_mode in ("PRE", "POST"):
         values = [val for _, val in opts]
         plot_key = f"do_plot_{profile_mode}"
         sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
-                            on_change=_clear_flag, args=(plot_key,))
+                            on_change=reset_plot, args=(plot_key,)) # on_change=reset_plot -> Changing slots resets session state, requiring Plot button to be pressed again
 
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
         if st.button("Plot", key=f"plot_btn_{profile_mode}"):
@@ -726,7 +706,7 @@ if profile_mode in ("PRE", "POST"):
                             st.warning(f"No data in slot {slot}")
                             continue
 
-                        avg_profile = average_radial_profile(Z_line)
+                        avg_profile = average_profile(Z_line)
                         if avg_profile.size == 0:
                             st.warning(f"No data in slot {slot}")
                             continue
@@ -741,13 +721,14 @@ if profile_mode in ("PRE", "POST"):
                         slotno = data.get('WaferData', {}).get(slot, {}).get('SlotNo', slot)
                         st.subheader(f"Average {graph_label(graph)}\n{lot}({slotno})")
 
+                        plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
+
                         col1, col2 = st.columns(2)
                         with col1:
                             plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, mask)
                         with col2:
                             plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, mask)
 
-                        plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
                         st.markdown("---")
                 else:
                     for slot in sel_keys:
@@ -789,6 +770,7 @@ if profile_mode in ("PRE", "POST"):
 
                         st.markdown("---")
 
+# profile_mode == REMOVAL:
 else:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
@@ -806,13 +788,13 @@ else:
         with c1:
             sel_pre = st.multiselect(
                 "PRE slots", pre_labels, default=None,
-                key="rem_pre_slots", on_change=_clear_flag, args=(plot_key,)
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,)
             )
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with c2:
             sel_post = st.multiselect(
                 "POST slots", post_labels, default=None,
-                key="rem_post_slots", on_change=_clear_flag, args=(plot_key,)
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,)
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
 
@@ -843,8 +825,8 @@ else:
                         st.warning("No overlapping data for removal.")
                         continue
 
-                    A_avg = average_radial_profile(A_line)[:nr]
-                    B_avg = average_radial_profile(B_line)[:nr]
+                    A_avg = average_profile(A_line)[:nr]
+                    B_avg = average_profile(B_line)[:nr]
                     Z_avg = A_avg - B_avg # Average PRE - Average POST
 
                     XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
