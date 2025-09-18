@@ -176,7 +176,6 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
 
 
 def gridThk(wafer):
-    import numpy as np
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
     profiles = wafer.get('Profiles', [])
@@ -192,7 +191,6 @@ def gridThk(wafer):
 
 
 def gridFlat(wafer):
-    import numpy as np
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
     profiles = wafer.get('Profiles', [])
@@ -224,13 +222,13 @@ class SlotCache:
     Flat_mir: np.ndarray
 
 
-def _finite_minmax(arr: np.ndarray, default: Tuple[float, float] = (0.0, 0.0)) -> Tuple[float, float]:
+def finite_minmax(arr: np.ndarray, default: Tuple[float, float] = (0.0, 0.0)) -> Tuple[float, float]:
     af = arr[np.isfinite(arr)]
     if af.size == 0:
         return default
     return float(np.min(af)), float(np.max(af))
 
-def _finite_max(arr: np.ndarray, default: float = 0.0) -> float:
+def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
     af = arr[np.isfinite(arr)]
     return float(np.max(af)) if af.size else default
 
@@ -238,9 +236,9 @@ def build_slot_cache(wafer_dict) -> SlotCache:
     r, theta, Thk = gridThk(wafer_dict)
     _, _, Flat = gridFlat(wafer_dict)
 
-    lmin_Thk, lmax_Thk = _finite_minmax(Thk, (0.0, 0.0))
-    lmin_Flat, lmax_Flat = _finite_minmax(Flat, (0.0, 0.0))
-    Rmax = _finite_max(r, 0.0)
+    lmin_Thk, lmax_Thk = finite_minmax(Thk, (0.0, 0.0))
+    lmin_Flat, lmax_Flat = finite_minmax(Flat, (0.0, 0.0))
+    Rmax = finite_max(r, 0.0)
 
     if theta.size and r.size:
         theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
@@ -332,7 +330,7 @@ def mask_outliers(Z: np.ndarray, k: float=4): # Outlier threshold = 4
         return Zm
     Zf = Zm[m]
     med = float(np.nanmedian(Zf))
-    mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826
+    mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826 
     if mad == 0 or not np.isfinite(mad):
         return Zm
     out = np.abs(Zm - med) > (k * mad)
@@ -344,8 +342,8 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, heigh
     Z = np.asarray(Z)
     if Z.size == 0:
         return
-    Zg = mask_outliers(Z) if do_mask else Z
-    Zc, vmin, vmax = robust_clip(Zg, p_lo, p_hi)
+    Zg = mask_outliers(Z) if do_mask else Z # Mask notch or not
+    Zc, vmin, vmax = robust_clip(Zg, p_lo, p_hi) # vmin = lowest percentile; vmax = highest percentile
     fig = go.Figure(data=[
         go.Surface(
             x=X, y=Y, z=Zg,
@@ -825,25 +823,6 @@ else:
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
                     st.subheader(f"Average {graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
 
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        plot_2d(XZ, YZ, Zrem, 'Removal (µm)', A_c.Rmax, p_lo, p_hi, do_mask)
-                    with c2:
-                        view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
-                        if view_key not in st.session_state:
-                            st.session_state[view_key] = False  # start with 2D
-                        label = "◀" if st.session_state[view_key] else "▶"
-                        if st.button(label, key=f"btn_avg_pair_{pre_slot}_{post_slot}"):
-                            st.session_state[view_key] = not st.session_state[view_key]
-                            st.rerun()
-
-                        if st.session_state[view_key]:
-                            plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
-                            plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
-                        else:
-                            plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
-                            plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
-
                     overlay_pre = A_avg if overlay_prepost_lines else None
                     overlay_post = B_avg if overlay_prepost_lines else None
                     plot_line_profile(
@@ -851,6 +830,29 @@ else:
                         height=520, avg=True,
                         overlay_pre=overlay_pre, overlay_post=overlay_post, positive_only=True
                     )
+
+                    view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
+                    btn_key  = f"btn_avg_pair_{pre_slot}_{post_slot}"
+                    if view_key not in st.session_state:
+                        st.session_state[view_key] = False  # start with 2D
+                    label = "◀" if st.session_state[view_key] else "▶"
+                    if st.button(label, key=btn_key):
+                        st.session_state[view_key] = not st.session_state[view_key]
+                        st.rerun()
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        if st.session_state[view_key]:
+                            plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                        else:
+                            plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
+
+                    with c2:
+                        if st.session_state[view_key]:
+                            plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                        else:
+                            plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
+
                     st.markdown("---")
 
             if not avg_profiles:
