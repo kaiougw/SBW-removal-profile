@@ -13,23 +13,59 @@ from PIL import Image
 import requests
 from io import BytesIO
 
+
+'''Utility Functions'''
 def safe_get(d: dict, key: str, default=None):
+# Get a value from a dict. Returns default if key is missing or d is not a dict.
     return d.get(key, default) if isinstance(d, dict) else default
 
 def floatlist(a) -> list:
+    """Convert input array-like to flat Python list of floats."""
     return np.asarray(a, dtype=float).ravel().tolist()
 
 def floatlist2d(a) -> list:
+    """Convert input array-like to 2D Python list of floats. Guarantees shape (n,1) if input is 1D."""
     a = np.asarray(a, dtype=float)
     if a.ndim == 1:
         a = a[:, None]
     return a.tolist()
 
 def _clear_flag(flag_key: str):
+    """Helper to reset a Streamlit session state flag."""
     st.session_state[flag_key] = False
-    
 
+def sorted_keys(d):
+    """Return sorted dictionary keys as floats if possible, otherwise strings."""
+    try:
+        return sorted(d.keys(), key=lambda k: float(k))
+    except Exception:
+        return sorted(d.keys(), key=str)
+
+def finite_xy(x: np.ndarray, y: np.ndarray):
+# Filter out non-finite (NaN/Inf) pairs from x and y
+# Input: x, y (1D arrays)
+# Output: (x_filtered, y_filtered) as NumPy arrays
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    m = np.isfinite(x) & np.isfinite(y)
+    if not m.any():
+        return (np.array([]), np.array([]))
+    return (x[m], y[m])
+
+def average_radial_profile(Z_line: np.ndarray) -> np.ndarray:
+# Compute average radial profile by combining both +r and -r sides
+# Input: Z_line (2D array, shape (n_lines, n_radii))
+# Output: 1D NumPy array of averaged values across all lines and mirrored halves
+    Z_line = np.asarray(Z_line, dtype=float)
+    if Z_line.size == 0:
+        return np.array([])
+    Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # mirror each line
+    with np.errstate(all='ignore'):
+        return np.nanmean(Z_full, axis=0)
+
+# SBW File Parsing and Cleaning
 class sbwinfo(object):
+    """Container for parsed SBW data."""
     MachineName = ''
     ProductNo = ''
     RecipeName = ''
@@ -41,12 +77,11 @@ class sbwinfo(object):
     def __init__(self, Lot=None):
         self.Lot = Lot
 
-# Parsing
 def parsesbw(sbwfile: str) -> sbwinfo:
+# Parse .sbw file into sbwinfo object
     sbw = sbwinfo()
     if not os.path.exists(sbwfile):
         raise Exception("Invalid sbw File Path!")
-
     with open(sbwfile, 'r') as fp:
         line = fp.readline()
         while line:
@@ -56,7 +91,6 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                     raise Exception("Invalid sbw File Format!")
                 else:
                     break
-
         tmpstr = []
         endloop = False
         line = fp.readline()
@@ -79,7 +113,6 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                             if tmpstr[1].rstrip().isnumeric():
                                 sbw.WaferCount=int(tmpstr[1])
                             break
-
             elif tmpline[0] == '[MeasureData.WaferDataList]':
                 sbw.SummaryReport.clear()
                 rptrows=tmpline[1]
@@ -94,7 +127,6 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                             _row[rptcol[j]]=tmpstr[j]
                         sbw.SummaryReport.append(_row)
                         break
-
             elif tmpline[0] == '[MeasureData.PointsDataList]':
                 sbw.WaferData.clear()
                 waferno=tmpline[1]
@@ -155,6 +187,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
     return sbw
 
 def cleansbw(sbwfile) -> Dict[str, Any]:
+# Convert sbwinfo object into a cleaned dictionary 
     lot = getattr(sbwfile, 'Lot', '')
     wd_src = getattr(sbwfile, 'WaferData', {}) or {}
     wd_dst: Dict[str, Any] = {}
@@ -174,121 +207,10 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
         }
     return {'Lot': lot, 'WaferData': wd_dst}
 
-
-def gridThk(wafer):
-    r = np.asarray(wafer.get('Radius', []), dtype=float)
-    theta = np.asarray(wafer.get('Angle', []), dtype=float)
-    profiles = wafer.get('Profiles', [])
-    nt, nr = len(theta), len(r)
-    Thk = np.full((nt, nr), np.nan, dtype=float)
-    for i in range(nt):
-        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
-        if line.ndim == 2 and line.shape[1] > 0:
-            Thk[i, :min(nr, line.shape[0])] = line[:nr, 0]
-        else:
-            Thk[i, :min(nr, line.size)] = line.ravel()[:nr]
-    return r, theta, Thk
-
-
-def gridFlat(wafer):
-    r = np.asarray(wafer.get('Radius', []), dtype=float)
-    theta = np.asarray(wafer.get('Angle', []), dtype=float)
-    profiles = wafer.get('Profiles', [])
-    nt, nr = len(theta), len(r)
-    Flat = np.full((nt, nr), np.nan, dtype=float)
-    for i in range(nt):
-        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
-        if line.ndim == 2 and line.shape[1] > 1:
-            Flat[i, :min(nr, line.shape[0])] = line[:nr, 1]
-        else:
-            Flat[i, :min(nr, line.size)] = line.ravel()[:nr]
-    return r, theta, Flat
-
-
-@dataclass
-class SlotCache:
-    r: np.ndarray
-    theta: np.ndarray
-    Thk: np.ndarray
-    Flat: np.ndarray
-    line_min_thk: float
-    line_max_thk: float
-    line_min_flat: float
-    line_max_flat: float
-    Rmax: float
-    X_mir: np.ndarray
-    Y_mir: np.ndarray
-    Thk_mir: np.ndarray
-    Flat_mir: np.ndarray
-
-
-def finite_minmax(arr: np.ndarray, default: Tuple[float, float] = (0.0, 0.0)) -> Tuple[float, float]:
-    af = arr[np.isfinite(arr)]
-    if af.size == 0:
-        return default
-    return float(np.min(af)), float(np.max(af))
-
-def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
-    af = arr[np.isfinite(arr)]
-    return float(np.max(af)) if af.size else default
-
-def build_slot_cache(wafer_dict) -> SlotCache:
-    r, theta, Thk = gridThk(wafer_dict)
-    _, _, Flat = gridFlat(wafer_dict)
-
-    lmin_Thk, lmax_Thk = finite_minmax(Thk, (0.0, 0.0))
-    lmin_Flat, lmax_Flat = finite_minmax(Flat, (0.0, 0.0))
-    Rmax = finite_max(r, 0.0)
-
-    if theta.size and r.size:
-        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
-        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0))
-        Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0))
-        T, Rm = np.meshgrid(theta_full, r, indexing='ij')
-        X_mir = Rm*np.cos(T)
-        Y_mir = Rm*np.sin(T)
-    else:
-        Thk_full = np.empty((0, 0))
-        Flat_full = np.empty((0, 0))
-        X_mir = np.empty((0, 0))
-        Y_mir = np.empty((0, 0))
-
-    return SlotCache(
-        r=r, theta=theta, Thk=Thk, Flat=Flat,
-        line_min_thk=lmin_Thk, line_max_thk=lmax_Thk,
-        line_min_flat=lmin_Flat, line_max_flat=lmax_Flat,
-        Rmax=Rmax, X_mir=X_mir, Y_mir=Y_mir, Thk_mir=Thk_full, Flat_mir=Flat_full
-    )
-
-
-def graph_arrays(c: SlotCache, graph: str):
-    return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
-
-
-def graph_label(graph: str, prefix: str = "") -> str:
-    base = "Flatness" if graph == "flat" else "Thickness"
-    if prefix:
-        return f"{prefix} {base}"
-    return f"{base}"
-
-def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
-    base = Image.open(BytesIO(requests.get(base_url).content)).convert("RGBA")
-    overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA")
-
-    overlay = overlay.resize((overlay_size, overlay_size*3), Image.LANCZOS)
-
-    overlay = overlay.rotate(rotation_deg, expand=True)
-
-    w, h = base.size
-    pos = ((w - overlay.width) // 2, (h - overlay.height) // 2)
-
-    combined = base.copy()
-    combined.paste(overlay, pos, overlay)
-    return combined
-
-
 @st.cache_data(show_spinner=False)
 def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]:
+    """Helper for Streamlit file uploader. Takes raw bytes from upload,
+    parses and cleans .sbw file, and returns cleaned dict format."""
     import tempfile
     obj = None
     with tempfile.NamedTemporaryFile(delete=False, suffix=".sbw") as tmp:
@@ -303,14 +225,119 @@ def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]:
         except Exception:
             pass
 
+'''Wafer Grid & Slot Caching'''
+def gridThk(wafer):
+    """Build 2D thickness grid from wafer dict.
+    Input: wafer dict containing Radius, Angle, Profiles.
+    Output: (r, theta, Thk) where Thk is 2D array shape (ntheta, nradius).
+    """
+    r = np.asarray(wafer.get('Radius', []), dtype=float)
+    theta = np.asarray(wafer.get('Angle', []), dtype=float)
+    profiles = wafer.get('Profiles', [])
+    nt, nr = len(theta), len(r)
+    Thk = np.full((nt, nr), np.nan, dtype=float)
+    for i in range(nt):
+        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
+        if line.ndim == 2 and line.shape[1] > 0:
+            Thk[i, :min(nr, line.shape[0])] = line[:nr, 0]
+        else:
+            Thk[i, :min(nr, line.size)] = line.ravel()[:nr]
+    return r, theta, Thk
+
+def gridFlat(wafer):
+    """Build 2D flatness grid from wafer dict.
+    Input: wafer dict containing Radius, Angle, Profiles.
+    Output: (r, theta, Flat) where Flat is 2D array shape (ntheta, nradius).
+    """
+    r = np.asarray(wafer.get('Radius', []), dtype=float)
+    theta = np.asarray(wafer.get('Angle', []), dtype=float)
+    profiles = wafer.get('Profiles', [])
+    nt, nr = len(theta), len(r)
+    Flat = np.full((nt, nr), np.nan, dtype=float)
+    for i in range(nt):
+        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
+        if line.ndim == 2 and line.shape[1] > 1:
+            Flat[i, :min(nr, line.shape[0])] = line[:nr, 1]
+        else:
+            Flat[i, :min(nr, line.size)] = line.ravel()[:nr]
+    return r, theta, Flat
+
+@dataclass
+class SlotCache:
+    """Cache object containing precomputed arrays for each slot."""
+    r: np.ndarray
+    theta: np.ndarray
+    Thk: np.ndarray
+    Flat: np.ndarray
+    line_min_thk: float
+    line_max_thk: float
+    line_min_flat: float
+    line_max_flat: float
+    Rmax: float
+    X_mir: np.ndarray
+    Y_mir: np.ndarray
+    Thk_mir: np.ndarray
+    Flat_mir: np.ndarray
+
+def finite_minmax(arr: np.ndarray, default: Tuple[float, float] = (0.0, 0.0)) -> Tuple[float, float]:
+    """Return (min, max) of finite values in array, or default if empty."""
+    af = arr[np.isfinite(arr)]
+    if af.size == 0:
+        return default
+    return float(np.min(af)), float(np.max(af))
+
+def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
+    """Return max of finite values in array, or default if empty."""
+    af = arr[np.isfinite(arr)]
+    return float(np.max(af)) if af.size else default
+
+def build_slot_cache(wafer_dict) -> SlotCache:
+    """Build SlotCache from wafer_dict. Precomputes mirrored data for plotting."""
+    r, theta, Thk = gridThk(wafer_dict)
+    _, _, Flat = gridFlat(wafer_dict)
+    lmin_Thk, lmax_Thk = finite_minmax(Thk, (0.0, 0.0))
+    lmin_Flat, lmax_Flat = finite_minmax(Flat, (0.0, 0.0))
+    Rmax = finite_max(r, 0.0)
+    if theta.size and r.size:
+        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
+        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0))
+        Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0))
+        T, Rm = np.meshgrid(theta_full, r, indexing='ij')
+        X_mir = Rm*np.cos(T)
+        Y_mir = Rm*np.sin(T)
+    else:
+        Thk_full = np.empty((0, 0))
+        Flat_full = np.empty((0, 0))
+        X_mir = np.empty((0, 0))
+        Y_mir = np.empty((0, 0))
+    return SlotCache(
+        r=r, theta=theta, Thk=Thk, Flat=Flat,
+        line_min_thk=lmin_Thk, line_max_thk=lmax_Thk,
+        line_min_flat=lmin_Flat, line_max_flat=lmax_Flat,
+        Rmax=Rmax, X_mir=X_mir, Y_mir=Y_mir, Thk_mir=Thk_full, Flat_mir=Flat_full
+    )
 
 @st.cache_data(show_spinner=False)
 def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
+    """Build cache for all slots from cleaned wafer data."""
     wafers = data.get('WaferData', {}) or {}
     return {k: build_slot_cache(w) for k, w in wafers.items()}
 
 
+'''Plot Utilities'''
+def graph_arrays(c: SlotCache, graph: str):
+    """Return (Z_line, Z_surf, label) depending on graph type ('thk' or 'flat')."""
+    return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
+
+def graph_label(graph: str, prefix: str = "") -> str:
+    """Return label string for graph type."""
+    base = "Flatness" if graph == "flat" else "Thickness"
+    if prefix:
+        return f"{prefix} {base}"
+    return f"{base}"
+
 def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
+    """Clip array values between percentiles p_lo and p_hi. Returns (clipped_array, vmin, vmax)."""
     Zf = Z[np.isfinite(Z)]
     if Zf.size == 0:
         return Z, 0.0, 1.0
@@ -322,8 +349,9 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
         vmax = vmin + 1e-9
     return np.clip(Z, vmin, vmax), vmin, vmax
 
-
-def mask_outliers(Z: np.ndarray, k: float=4): # Outlier threshold = 4
+def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4 
+# Mask notch (outliers) in array using Median Absolute Deviation (MAD).
+# Any value further than k*MAD from median is replaced with NaN.
     Zm = np.asarray(Z, dtype=float).copy()
     m = np.isfinite(Zm)
     if not m.any():
@@ -333,16 +361,38 @@ def mask_outliers(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826 
     if mad == 0 or not np.isfinite(mad):
         return Zm
-    out = np.abs(Zm - med) > (k * mad)
-    Zm[out] = np.nan # Distance > k x MAD is marked as outlier
+    out = np.abs(Zm - med) > (k * mad) # Distance > k x MAD is marked as outlier -> NaN
+    Zm[out] = np.nan
     return Zm
 
+'''Image Overlay (for Line Scanning Direction)'''
+def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
+# Overlay overlay_url on base_url
+    base = Image.open(BytesIO(requests.get(base_url).content)).convert("RGBA") # waferimg
+    overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA") # arrowimg
+    overlay = overlay.resize((overlay_size, overlay_size*3), Image.LANCZOS)
+    overlay = overlay.rotate(rotation_deg, expand=True) # Rotates arrow by rotation_deg set by user through select_slider
+    w, h = base.size
+    pos = ((w - overlay.width) // 2, (h - overlay.height) // 2)
+    combined = base.copy()
+    combined.paste(overlay, pos, overlay)
+    return combined
 
-def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, height: int = 600):
+
+'''Plotting Functions'''
+def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, mask: bool, height: int = 600):
+# Inputs:
+    # X,Y,Z: 2D arrays of coordinates and surface values
+    # zlabel: string label for z-axis and colorbar
+    # p_lo, p_hi: lowest percentile and highest percentile values
+    # mask: mask outliers or not
+    # height: plot height
+# Output:
+    # 3D plot in Streamlit
     Z = np.asarray(Z)
     if Z.size == 0:
         return
-    Zg = mask_outliers(Z) if do_mask else Z # Mask notch or not
+    Zg = masknotch(Z) if mask else Z # Mask notch if mask checkbox is checked
     Zc, vmin, vmax = robust_clip(Zg, p_lo, p_hi) # vmin = lowest percentile; vmax = highest percentile
     fig = go.Figure(data=[
         go.Surface(
@@ -373,12 +423,20 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, do_mask: bool, heigh
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
-
-def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, do_mask: bool, height: int=600):
+def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, mask: bool, height: int=600):
+# Inputs:
+    # X,Y,Z: 2D arrays of coordinates and surface values
+    # zlabel: string for colorbar
+    # radius_max: wafer radius
+    # p_lo, p_hi : lowest percentile and highest percentile values
+    # mask: mask notch or not
+    # height: height (pixels)
+# Output:
+    # 2D plot in Streamlit
     Z = np.asarray(Z)
     if Z.size == 0:
         return
-    Zg = mask_outliers(Z) if do_mask else Z
+    Zg = masknotch(Z) if mask else Z # Mask notch if mask checkbox is checked
     Zc, vmin, vmax = robust_clip(Zg, p_lo, p_hi)
     z0 = np.zeros_like(Zc)
     fig = go.Figure(data=[
@@ -389,15 +447,16 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
             colorbar=dict(title=zlabel, len=0.8, thickness=15)
         )
     ])
-    theta = np.linspace(0, 2*np.pi, 200)
-    rmax = radius_max if np.isfinite(radius_max) and radius_max > 0 else 0.0
-    if rmax > 0:
-        cx, cy = rmax * np.cos(theta), rmax * np.sin(theta)
-        fig.add_trace(go.Scatter3d(
-            x=cx, y=cy, z=[0.0]*cx.size,
-            mode="lines", line=dict(color="black", width=2),
-            showlegend=False
-        ))
+    # wafer outline
+    # theta = np.linspace(0, 2*np.pi, 200)
+    # rmax = radius_max if np.isfinite(radius_max) and radius_max > 0 else 0.0
+    # if rmax > 0:
+    #     cx, cy = rmax * np.cos(theta), rmax * np.sin(theta)
+    #     fig.add_trace(go.Scatter3d(
+    #         x=cx, y=cy, z=[0.0]*cx.size,
+    #         mode="lines", line=dict(color="black", width=2),
+    #         showlegend=False
+    #     ))
     fig.update_scenes(
         zaxis=dict(visible=False),
         xaxis_title="Radius (mm)",
@@ -408,20 +467,22 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, d
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
-def finite_xy(x: np.ndarray, y: np.ndarray):
-    x = np.asarray(x, dtype=float)
-    y = np.asarray(y, dtype=float)
-    m = np.isfinite(x) & np.isfinite(y)
-    if not m.any():
-        return (np.array([]), np.array([]))
-    return (x[m], y[m])
-
-waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg"
-arrowimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arrowimg.png"
-
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
                       waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
+# Inputs:
+    # r: 1D array of radii
+    # line: 1D array of values
+    # zlabel: y-axis label
+    # title
+    # height
+    # overlay_pre, overlay_post
+    # avg: Average Profile checkbox checked -> True
+    # waferimg: wafer image
+    # rotation_deg: rotation for arrow image
+    # positive_only: if True, only plot r>=0
+# Output:
+    # Line chart in Streamlit
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
     x_full = np.asarray(r, dtype=float)
@@ -433,6 +494,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     else:
         x, y = finite_xy(-x_full, y_full)
     fig = go.Figure()
+    # overlay PRE
     if overlay_pre is not None:
         y_pre = np.asarray(overlay_pre, dtype=float)
         if positive_only and y_pre.size == y_full.size:
@@ -445,7 +507,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
                 x=x_pre, y=y_pre, mode="lines",
                 name="PRE", line=dict(width=1.0, color="lightgray")
             ))
-
+    # overlay POST
     if overlay_post is not None:
         y_post = np.asarray(overlay_post, dtype=float)
         if positive_only and y_post.size == y_full.size:
@@ -458,6 +520,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
                 x=x_post, y=y_post, mode="lines",
                 name="POST", line=dict(width=1.0, color="lightgray")
             ))
+    # main line
     if y.size:
         fig.add_trace(go.Scatter(
             x=x, y=y, mode="lines",
@@ -487,15 +550,25 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
                 rotation_deg=rotation_deg
             )
             st.image(combined, width=200)
-
             st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
     else:
         st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
-
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
                    nrows=2, ncols=4, height: int = 600,
                    overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
+    """Plot multiple line profiles in a grid layout.
+    Inputs:
+        r       : 1D radii
+        theta   : 1D angles
+        Z_line  : 2D array (n_theta, n_radii)
+        zlabel  : y-axis label
+        nrows, ncols : subplot grid size
+        overlay_pre, overlay_post : optional PRE/POST overlays
+        avg     : whether this is average profile
+    Output:
+        Streamlit renders grid of line profile subplots
+    """
     r = np.asarray(r, dtype=float)
     Z_line = np.asarray(Z_line, dtype=float)
     if Z_line.size == 0:
@@ -507,59 +580,38 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
     has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
     has_post = overlay_post is not None and np.size(overlay_post) != 0
-
     for i in range(count):
         row, col = i // ncols + 1, i % ncols + 1
         y = Z_line[i, :]
         x_i, y_i = finite_xy(-r, y)
         ang = angs[i] if i < angs.size else np.nan
-
         if has_pre:
             y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
             x_pre, y_pre = finite_xy(r, y_pre)
             if y_pre.size:
-                fig.add_trace(
-                    go.Scatter(x=x_pre, y=y_pre, mode="lines",
-                               line=dict(width=1.0, color="lightgray"),
-                               name="PRE"),
-                    row=row, col=col
-                )
+                fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
+                                         line=dict(width=1.0, color="lightgray"),
+                                         name="PRE"), row=row, col=col)
         if has_post:
             y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
             x_post, y_post = finite_xy(r, y_post)
             if y_post.size:
-                fig.add_trace(
-                    go.Scatter(x=x_post, y=y_post, mode="lines",
-                               line=dict(width=1.0, color="lightgray"),
-                               name="POST"),
-                    row=row, col=col
-                )
-
-        fig.add_trace(
-            go.Scatter(
-                x=x_i, y=y_i, mode="lines",
-                name="Angle",
-                line=dict(width=1.2, color="red"),
-                showlegend=False,
-                hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"
-            ),
-            row=row, col=col
-        )
+                fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
+                                         line=dict(width=1.0, color="lightgray"),
+                                         name="POST"), row=row, col=col)
+        fig.add_trace(go.Scatter(x=x_i, y=y_i, mode="lines",
+                                 line=dict(width=1.2, color="red"),
+                                 showlegend=False,
+                                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"),
+                      row=row, col=col)
         label = f"Angle {ang+180:.1f}°"
-        fig.add_annotation(
-            text=label,
-            showarrow=False,
-            x=0.5, xref="x domain",
-            y=1.15, yref="y domain",
-            font=dict(size=12, color="gray"),
-            row=row, col=col
-        )
-
+        fig.add_annotation(text=label, showarrow=False,
+                           x=0.5, xref="x domain", y=1.15, yref="y domain",
+                           font=dict(size=12, color="gray"), row=row, col=col)
         if row == nrows:
             fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
         if col == 1:
             fig.update_yaxes(title_text=zlabel, row=row, col=col)
-
     fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30))
     for r_i in range(1, nrows+1):
         for c_i in range(1, ncols+1):
@@ -568,13 +620,6 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
     fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-
-
-def sorted_keys(d):
-    try:
-        return sorted(d.keys(), key=lambda k: float(k))
-    except Exception:
-        return sorted(d.keys(), key=str)
 
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
@@ -587,15 +632,7 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
         disp.append((f"Slot {ref.get('SlotNo', k)}", k))
     return disp
 
-def average_radial_profile(Z_line: np.ndarray) -> np.ndarray:
-    Z_line = np.asarray(Z_line, dtype=float)
-    if Z_line.size == 0:
-        return np.array([])
-    Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # include both halves of every line
-    with np.errstate(all='ignore'):
-        return np.nanmean(Z_full, axis=0)
-
-# UI
+'''UI'''
 st.set_page_config(page_title="SBW Removal Profile", layout="wide")
 st.title("SBW Removal Profile")
 
@@ -605,7 +642,7 @@ with st.sidebar:
     p_hi = st.slider("Color clip high (%)", 95.0, 100.0, 100.0, 1.0) # To adjust highest percentile value
     if p_hi <= p_lo:
         p_hi = min(100.0, p_lo + 0.5)
-    do_mask = st.checkbox("Mask notch", value=False)
+    mask = st.checkbox("Mask notch", value=False)
 
 colA, colB, colC = st.columns([1, 1, 1])
 with colA:
@@ -706,9 +743,9 @@ if profile_mode in ("PRE", "POST"):
 
                         col1, col2 = st.columns(2)
                         with col1:
-                            plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask)
+                            plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, mask)
                         with col2:
-                            plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
+                            plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, mask)
 
                         plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
                         st.markdown("---")
@@ -731,9 +768,9 @@ if profile_mode in ("PRE", "POST"):
 
                         col1, col2 = st.columns(2)
                         with col1:
-                            plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, do_mask)
+                            plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, mask)
                         with col2:
-                            plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, do_mask)
+                            plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, mask)
 
                         plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=600)
 
@@ -843,15 +880,15 @@ else:
                     c1, c2 = st.columns(2)
                     with c1:
                         if st.session_state[view_key]:
-                            plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
+                            plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
+                            plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     with c2:
                         if st.session_state[view_key]:
-                            plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                            plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
+                            plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     st.markdown("---")
 
@@ -892,7 +929,7 @@ else:
                     c1, c2 = st.columns(2)
                     with c1:
                         rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                        plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, do_mask)
+                        plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, mask)
                     with c2:
                         view_key = f"show3d_{pre_slot}_{post_slot}"
                         if view_key not in st.session_state:
@@ -902,11 +939,11 @@ else:
                             st.session_state[view_key] = not st.session_state[view_key]
                             st.rerun()
                         if st.session_state[view_key]:
-                            plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, do_mask, height=300)
-                            plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, do_mask, height=300)
+                            plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
+                            plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, do_mask, height=300)
-                            plot_2d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, do_mask, height=300)
+                            plot_2d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
                     overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
