@@ -89,9 +89,9 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
     Z_line = np.asarray(Z_line, dtype=float) 
     if Z_line.size == 0:
         return np.array([])
-    Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # stacks original (+r) and mirrored (-r) arrays vertically
+    Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # stacks original (+r) and mirrored (-r) arrays vertically, for which average is returned
     with np.errstate(all='ignore'):
-        return np.nanmean(Z_full, axis=0)
+        return np.nanmean(Z_full, axis=0) 
 
 # SBW File Parsing and Cleaning
 class sbwinfo(object):
@@ -261,7 +261,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
     return {'Lot': lot, 'WaferData': wd_dst}
 
 @st.cache_data(show_spinner=False) # Caches results of this function
-def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]: #***
+def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
     """
     Parse (using `parsesbw`) and clean (using `cleansbw`) .sbw file uploaded by user, and return cleaned dict format
 
@@ -286,7 +286,7 @@ def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]: #***
     """
     import tempfile
     obj = None
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".sbw") as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".sbw") as tmp: # create a temporary file .sbw
         tmp.write(uploaded_bytes)
         tmp_path = tmp.name
     try:
@@ -327,8 +327,8 @@ def Thkmatrix(wafer):
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
     profiles = wafer.get('Profiles', [])
     nt, nr = len(theta), len(r)
-    Thk = np.full((nt, nr), np.nan, dtype=float)
-    for i in range(nt): # loop over each angle i and get corresponding Thk at every r
+    Thk = np.full((nt, nr), np.nan, dtype=float) # create 2D array filled with NaN, shape (nt, nr)
+    for i in range(nt): # loop over each angle i and get corresponding Thk data at every r
         line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
         if line.ndim == 2 and line.shape[1] > 0:
             Thk[i, :min(nr, line.shape[0])] = line[:nr, 0]
@@ -365,7 +365,7 @@ def Flatmatrix(wafer):
     profiles = wafer.get('Profiles', [])
     nt, nr = len(theta), len(r)
     Flat = np.full((nt, nr), np.nan, dtype=float)
-    for i in range(nt): # loop over each angle i and get corresponding Flat at every r
+    for i in range(nt): # loop over each angle i and get corresponding Flat data at every r
         line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
         if line.ndim == 2 and line.shape[1] > 1:
             Flat[i, :min(nr, line.shape[0])] = line[:nr, 1]
@@ -890,7 +890,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
-    Return a list of Slot #'s for user to select in dropdown
+    Return a list of Slot #'s for user to select in dropdown menu
 
     Intput
     ----------
@@ -909,13 +909,9 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     Output
     -------
     list of tuple (str, str)
-        A list of (display_label, slot_key) pairs, e.g.:
-        [   ("Slot 1", "0"),
-            ("Slot 2", "1"),
-            ...
-        ]
-        - display_label : str
-            User-friendly label shown in the dropdown ("Slot <SlotNo>").
+        A list of (display_label, slot_key) pairs
+        - display_label: str
+            Label shown in the dropdown  menu.
         - slot_key : str
             Internal key used to look up data in WaferData.
     """
@@ -946,7 +942,7 @@ with colA:
 with colB:
     post_file = st.file_uploader("Upload POST .sbw", type=["sbw"], key="post")
 with colC:
-    graph = st.selectbox(
+    graph = st.selectbox( # dropdown menu
         "",
         options=[("Thickness", "thk"), ("Flatness", "flat")],
         format_func=lambda x: x[0]
@@ -999,7 +995,7 @@ if profile_mode in ("PRE", "POST"):
 
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
         if st.button("Plot", key=f"plot_btn_{profile_mode}"):
-            st.session_state[plot_key] = True
+            st.session_state[plot_key] = True # Plot button as trigger
 
         prev_key = f"prev_avg_{profile_mode}"
         if prev_key not in st.session_state:
