@@ -942,12 +942,12 @@ with colA:
 with colB:
     post_file = st.file_uploader("Upload POST .sbw", type=["sbw"], key="post")
 with colC:
-    graph = st.selectbox( # dropdown menu
+    graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "",
         options=[("Thickness", "thk"), ("Flatness", "flat")],
         format_func=lambda x: x[0]
     )[1]
-    profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch")
+    profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch") # (PRE | POST | REMOVAL)
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 
 # Sidebar options only when REMOVAL is selected
