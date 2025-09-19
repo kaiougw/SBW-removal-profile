@@ -16,34 +16,44 @@ from io import BytesIO
 
 # Utility Functions
 def floatlist(a) -> list:
-# Converts array-like input into flat list of floats to ensure numbers are in numeric, not str or int
-# Called inside `cleansbw` for Radius and Angle
+    """
+    Convert array-like input into flat list of floats to ensure numbers are in numeric, not str or int.
+    Called inside `cleansbw` for Radius and Angle.
+    """
     return np.asarray(a, dtype=float).ravel().tolist()
 
 def floatlist2d(a) -> list:
-# Converts array-like input into 2D list of floats to ensure numbers are in numeric, not str or int
-# Called inside `cleansbw` for Profile to preserve its 2D structure ([thickness, flatness] for each radius)
+    """
+    Convert array-like input into 2D list of floats to ensure numbers are in numeric, not str or int.
+    Called inside `cleansbw` for Profile to preserve its 2D structure ([thickness, flatness] for each radius).
+    """
     a = np.asarray(a, dtype=float)
     if a.ndim == 1:
         a = a[:, None] # convert shape (N,) → (N,1)
     return a.tolist()
 
 def reset_plot(flag_key: str):
-# A reset switch to control session state
-# Changing slots resets session state, requiring Plot button to be pressed again
+    """
+    A reset switch to control session state
+    Changing slots resets session state, requiring Plot button to be pressed again
+    """
     st.session_state[flag_key] = False # False -> no plotting until Plot button is pressed
 
 def sort_keys(d): # d = WaferData
-# Sorts dictionary keys (slot IDs) as floats if possible, otherwise strings
+    """
+    Sorts dictionary keys (slot IDs) as floats if possible, otherwise strings
+    """
     try:
         return sorted(d.keys(), key=lambda k: float(k))
     except Exception:
         return sorted(d.keys(), key=str)
 
 def finite_xy(x: np.ndarray, y: np.ndarray):
-# Removes non-finite (NaN/Inf) pairs from x and y
-# Input: x, y (1D arrays)
-# Output: (x_filtered, y_filtered) as arrays
+    """
+    Removes non-finite (NaN/Inf) pairs from x and y
+    Input: x, y (1D arrays)
+    Output: (x_filtered, y_filtered) as arrays
+    """
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     m = np.isfinite(x) & np.isfinite(y)
@@ -52,9 +62,11 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
     return (x[m], y[m])
 
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
-# Computes average radial profile by combining both +r and -r sides
-# Input: Z_line (2D array with shape (n_lines, n_radii))
-# Output: 1D NumPy array of averaged values across all lines and mirrored halves
+    """
+    Computes average radial profile by combining both +r and -r sides
+    Input: Z_line (2D array with shape (n_lines, n_radii))
+    Output: 1D NumPy array of averaged values across all lines and mirrored halves
+    """
     Z_line = np.asarray(Z_line, dtype=float) 
     if Z_line.size == 0:
         return np.array([])
@@ -64,7 +76,9 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
 
 # SBW File Parsing and Cleaning
 class sbwinfo(object):
-# Container for parsed SBW data
+    """
+    Container for parsed SBW data
+    """
     MachineName = ''
     ProductNo = ''
     RecipeName = ''
@@ -186,7 +200,9 @@ def parsesbw(sbwfile: str) -> sbwinfo:
     return sbw
 
 def cleansbw(sbwfile) -> Dict[str, Any]:
-# Converts sbwinfo object (output of parsesbw()) into a cleaned dictionary 
+    """
+    Convert sbwinfo object (output of parsesbw()) into a cleaned dictionary
+    """
     lot = getattr(sbwfile, 'Lot', '')
     wd_src = getattr(sbwfile, 'WaferData', {}) or {}
     wd_dst: Dict[str, Any] = {}
@@ -208,7 +224,9 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
 
 @st.cache_data(show_spinner=False) # Caches results of this function
 def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]: #***
-# Parses and cleans .sbw file, and returns cleaned dict format
+    """
+    Parse and clean .sbw file, and return cleaned dict format
+    """
     import tempfile
     obj = None
     with tempfile.NamedTemporaryFile(delete=False, suffix=".sbw") as tmp:
@@ -225,9 +243,13 @@ def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]: #***
 
 # Wafer Grid & Slot Caching
 def Thkmatrix(wafer): 
-# Build 2D thickness matrix with rows = Angle, columns = Radius
-# Input: wafer dict containing Radius, Angle, Profiles
-# Output: (r, theta, Thk) where Thk is 2D array shape (n_theta, n_radius)
+    """
+    Build 2D thickness matrix with rows = Angle, columns = Radius
+
+    Input: wafer dict containing Radius, Angle, Profiles
+
+    Output: (r, theta, Thk) where Thk is 2D array shape (n_theta, n_radius)
+    """
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
     profiles = wafer.get('Profiles', [])
@@ -242,9 +264,14 @@ def Thkmatrix(wafer):
     return r, theta, Thk
 
 def Flatmatrix(wafer):
-# Build 2D flatness matrix with rows = Angle, columns = Radius
-# Input: wafer dict containing Radius, Angle, Profiles
-# Output: (r, theta, Flat) where Flat is 2D array shape (ntheta, nradius)
+    """
+    Build 2D flatness matrix with rows = Angle, columns = Radius
+
+    Input: wafer dict containing Radius, Angle, Profiles
+
+    Output: (r, theta, Flat) where Flat is 2D array shape (ntheta, nradius)
+
+    """
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
     profiles = wafer.get('Profiles', [])
@@ -272,13 +299,17 @@ class SlotCache:
     Flat_mir: np.ndarray
 
 def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
-# Returns max of finite values in array, default if empty
-# Used to find Rmax, which is used to draw wafer outline (line 430-439)
+    """
+    Return max of finite values in array, default if empty.
+    Used to find Rmax, which is used to draw wafer outline (line 430-439).
+    """
     af = arr[np.isfinite(arr)]
     return float(np.max(af)) if af.size else default
 
 def build_slot_cache(wafer_dict) -> SlotCache:
-# Takes wafer_dict and builds SlotCache 
+    """
+    Take wafer_dict and builds SlotCache
+    """
     r, theta, Thk = Thkmatrix(wafer_dict) # Thickness matrix
     _, _, Flat = Flatmatrix(wafer_dict) # Flatness matrix
     Rmax = finite_max(r, 0.0)
@@ -317,7 +348,9 @@ def graph_label(graph: str, prefix: str = "") -> str:
     return f"{base}"
 
 def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
-# Clip values between p_lo (lowest percentile) and p_hi (highest percentile)
+    """
+    Clip values between p_lo (lowest percentile) and p_hi (highest percentile)
+    """
     Zf = Z[np.isfinite(Z)]
     if Zf.size == 0:
         return Z, 0.0, 1.0
@@ -330,8 +363,10 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
     return np.clip(Z, vmin, vmax), vmin, vmax
 
 def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4 
-# Mask notch (outliers) in array using Median Absolute Deviation (MAD).
-# Any value further than k*MAD from median is replaced with NaN.
+    """
+    Mask notch (outliers) in array using Median Absolute Deviation (MAD).
+    Any value further than k*MAD from median is replaced with NaN.
+    """
     Zm = np.asarray(Z, dtype=float).copy()
     m = np.isfinite(Zm)
     if not m.any():
@@ -361,14 +396,16 @@ def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rota
 
 # Plotting Functions
 def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, mask: bool, height: int = 600):
-# Inputs:
-    # X,Y,Z: 2D arrays of coordinates and surface values
-    # zlabel: string label for z-axis and colorbar
-    # p_lo, p_hi: lowest percentile and highest percentile values
-    # mask: mask outliers or not
-    # height: plot height
-# Output:
-    # 3D plot in Streamlit
+    """
+    Inputs:
+        X,Y,Z: 2D arrays of coordinates and surface values
+        zlabel: string label for z-axis and colorbar
+        p_lo, p_hi: lowest percentile and highest percentile values
+        mask: mask outliers or not
+        height: plot height
+    Output:
+        3D plot in Streamlit
+    """
     Z = np.asarray(Z)
     if Z.size == 0:
         return
@@ -404,15 +441,17 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, mask: bool, height: 
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, mask: bool, height: int=600):
-# Inputs:
-    # X,Y,Z: 2D arrays of coordinates and surface values
-    # zlabel: string for colorbar
-    # radius_max: wafer radius
-    # p_lo, p_hi : lowest percentile and highest percentile values
-    # mask: mask notch or not
-    # height: height (pixels)
-# Output:
-    # 2D plot in Streamlit
+    """
+    Inputs:
+        X,Y,Z: 2D arrays of coordinates and surface values
+        zlabel: string for colorbar
+        radius_max: wafer radius
+        p_lo, p_hi : lowest percentile and highest percentile values
+        mask: mask notch or not
+        height: height (pixels)
+    Output:
+        2D plot in Streamlit
+    """
     Z = np.asarray(Z)
     if Z.size == 0:
         return
@@ -450,19 +489,21 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, m
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
                       waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
-# Inputs:
-    # r: 1D array of radii
-    # line: 1D array of values
-    # zlabel: y-axis label
-    # title
-    # height
-    # overlay_pre, overlay_post
-    # avg: True if Average Profile checkbox checked
-    # waferimg: wafer image
-    # rotation_deg: rotation for arrow image
-    # positive_only: if True, only plot r>=0
-# Output:
-    # Line chart of a single angle in Streamlit
+    """
+    Inputs:
+        r: 1D array of radii
+        line: 1D array of values
+        zlabel: y-axis label
+        title
+        height
+        overlay_pre, overlay_post
+        avg: True if Average Profile checkbox checked
+        waferimg: wafer image
+        rotation_deg: rotation for arrow image
+        positive_only: if True, only plot r>=0
+    Output:
+        Line chart of a single angle in Streamlit
+    """
     x = np.asarray(r, dtype=float)
     y = np.asarray(line, dtype=float)
     x_full = np.asarray(r, dtype=float)
@@ -537,16 +578,18 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
                    nrows=2, ncols=4, height: int = 600,
                    overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
-# Inputs:
-    # r: 1D radii
-    # theta: 1D angles
-    # Z_line: 2D array (n_theta, n_radii)
-    # zlabel: y-axis label
-    # nrows, ncols: subplot grid size
-    # overlay_pre, overlay_post: optional PRE/POST overlays
-    # avg: True if Average Profile selected
-# Output:
-    # Line profile charts in Streamlit
+    """
+    Inputs:
+        r: 1D radii
+        theta: 1D angles
+        Z_line: 2D array (n_theta, n_radii)
+        zlabel: y-axis label
+        nrows, ncols: subplot grid size
+        overlay_pre, overlay_post: optional PRE/POST overlays
+        avg: True if Average Profile selected
+    Output:
+        Line profile charts in Streamlit
+    """
     r = np.asarray(r, dtype=float)
     Z_line = np.asarray(Z_line, dtype=float)
     if Z_line.size == 0:
@@ -601,7 +644,9 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
 
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
-# Return a list of Slot #'s for user to select in dropdown
+    """
+    Return a list of Slot #'s for user to select in dropdown
+    """
     if not data:
         return []
     disp = []
