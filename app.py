@@ -34,8 +34,8 @@ def floatlist2d(a) -> list:
 
 def reset_plot(flag_key: str):
     """
-    A reset switch to control session state
-    Changing slots resets session state, requiring Plot button to be pressed again
+    A reset switch to control session state.
+    Changing slot options resets session state, requiring Plot button to be pressed again.
     """
     st.session_state[flag_key] = False # False -> no plotting until Plot button is pressed
 
@@ -50,9 +50,19 @@ def sort_keys(d): # d = WaferData
 
 def finite_xy(x: np.ndarray, y: np.ndarray):
     """
-    Removes non-finite (NaN/Inf) pairs from x and y
-    Input: x, y (1D arrays)
-    Output: (x_filtered, y_filtered) as arrays
+    Filter out NaN/Inf values from (x, y) pairs.
+
+    Input
+    ---
+    x : np.ndarray
+        1D array of x-coordinates.
+    y : np.ndarray
+        1D array of y-coordinates.
+
+    Ouput
+    ----
+    tuple of np.ndarray
+        (x_filtered, y_filtered) as arrays
     """
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
@@ -63,9 +73,17 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
 
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
     """
-    Computes average radial profile by combining both +r and -r sides
-    Input: Z_line (2D array with shape (n_lines, n_radii))
-    Output: 1D NumPy array of averaged values across all lines and mirrored halves
+    Compute average radial profile by combining both +r and -r sides
+
+    Input
+    ---
+    Z_line: np.ndarray
+        2D array, shape (n_lines, n_radii), where each row is a scan line along radius positions.
+
+    Output
+    ---
+    np.ndarray
+        1D array of length n_radii containing the averaged profile across all lines and their mirrored halves.
     """
     Z_line = np.asarray(Z_line, dtype=float) 
     if Z_line.size == 0:
@@ -201,7 +219,30 @@ def parsesbw(sbwfile: str) -> sbwinfo:
 
 def cleansbw(sbwfile) -> Dict[str, Any]:
     """
-    Convert sbwinfo object (output of parsesbw()) into a cleaned dictionary
+    Convert `sbwinfo` object (output of `parsesbw`) into a cleaned dictionary format.
+
+    Input
+    ---
+    sbwfile: sbwinfo (from `parsesbw`)
+        Parsed SBW file object containing lot and wafer data.
+    
+    Output
+    ---
+    dict
+        Dictionary with structure:
+        {
+            'Lot': str,
+            'WaferData': {
+                slot_key: {
+                    'SlotNo': str,
+                    'Lot': str,
+                    'Radius': list of float,
+                    'Angle': list of float,
+                    'Profiles': list of 2D lists [[float, float], ...]
+                },
+                ...
+            }
+        }
     """
     lot = getattr(sbwfile, 'Lot', '')
     wd_src = getattr(sbwfile, 'WaferData', {}) or {}
@@ -225,7 +266,30 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
 @st.cache_data(show_spinner=False) # Caches results of this function
 def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]: #***
     """
-    Parse and clean .sbw file, and return cleaned dict format
+    Parse and clean .sbw file uploaded by user, and return cleaned dict format
+
+    Input
+    ---
+    uploaded_bytes: bytes
+        Raw file content (from st.file_uploader).
+
+    Output
+    ---
+    dict
+        Cleaned dictionary in the same format as `cleansbw`, with structure:
+        {
+            'Lot': str,
+            'WaferData': {
+                slot_key: {
+                    'SlotNo': str,
+                    'Lot': str,
+                    'Radius': list of float,
+                    'Angle': list of float,
+                    'Profiles': list of 2D lists [[float, float], ...]
+                },
+                ...
+            }
+        }
     """
     import tempfile
     obj = None
@@ -246,9 +310,25 @@ def Thkmatrix(wafer):
     """
     Build 2D thickness matrix with rows = Angle, columns = Radius
 
-    Input: wafer dict containing Radius, Angle, Profiles
+    Input
+    ---
+    wafer: dict
+        Wafer dictionary containing:
+        - "Radius": list of float
+        - "Angle": list of float
+        - "Profiles": list of 2D arrays, each with columns
+            [:,0] = Thickness values
+            [:,1] = Flatness values (ignored in this function)
 
-    Output: (r, theta, Thk) where Thk is 2D array shape (n_theta, n_radius)
+    Output
+    --- 
+    r: np.ndarray
+        1D array of radii, shape (n_radius,).
+    theta: np.ndarray
+        1D array of angles, shape (n_theta,).
+    Thk: np.ndarray
+        2D array of thickness values, shape (n_theta, n_radius).
+        Rows correspond to angles, columns correspond to radii.
     """
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
@@ -267,10 +347,25 @@ def Flatmatrix(wafer):
     """
     Build 2D flatness matrix with rows = Angle, columns = Radius
 
-    Input: wafer dict containing Radius, Angle, Profiles
+    Input
+    ---
+    wafer: dict
+        Wafer dictionary containing:
+        - "Radius": list of float
+        - "Angle": list of float
+        - "Profiles": list of 2D arrays, each with columns
+            [:,0] = Thickness values (ignored in this function)
+            [:,1] = Flatness values 
 
-    Output: (r, theta, Flat) where Flat is 2D array shape (ntheta, nradius)
-
+    Output
+    --- 
+    r: np.ndarray
+        1D array of radii, shape (n_radius,).
+    theta: np.ndarray
+        1D array of angles, shape (n_theta,).
+    Flat: np.ndarray
+        2D array of thickness values, shape (n_theta, n_radius).
+        Rows correspond to angles, columns correspond to radii.
     """
     r = np.asarray(wafer.get('Radius', []), dtype=float)
     theta = np.asarray(wafer.get('Angle', []), dtype=float)
@@ -302,6 +397,18 @@ def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
     """
     Return max of finite values in array, default if empty.
     Used to find Rmax, which is used to draw wafer outline (line 430-439).
+
+    Input
+    ---
+    arr: np.ndarray
+        Input array.
+    default: float
+        Value to return if no finite values exist (default = 0.0).
+
+    Output
+    ---
+    float
+        Maximum finite value in the array, or the default = 0.0 if none exist.
     """
     af = arr[np.isfinite(arr)]
     return float(np.max(af)) if af.size else default
@@ -309,6 +416,36 @@ def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
 def build_slot_cache(wafer_dict) -> SlotCache:
     """
     Take wafer_dict and builds SlotCache
+
+    Input
+    ---
+    wafer_dict: dict
+        Wafer data dictionary (from cleansbw) containing:
+        - 'Radius': list of float
+            Radial positions (mm).
+        - 'Angle': list of float
+            Angular positions (radians).
+        - 'Profiles': list of 2D arrays
+            Each profile is shape (n_radius, 2), column 0 = Thickness, column 1 = Flatness.
+
+    Output
+    ---
+    SlotCache
+        Dataclass containing precomputed grids:
+        - r: np.ndarray
+            Radii (1D).
+        - theta: np.ndarray
+            Angles (1D).
+        - Thk: np.ndarray, shape (n_theta, n_radius)
+            Thickness grid.
+        - Flat: np.ndarray, shape (n_theta, n_radius)
+            Flatness grid.
+        - Rmax: float
+            Maximum finite radius (used for wafer outline).
+        - X_mir, Y_mir: np.ndarray
+            Cartesian grids after mirroring across wafer diameter.
+        - Thk_mir, Flat_mir: np.ndarray
+            Thickness/Flatness grids extended with mirrored halves to cover full 360°.
     """
     r, theta, Thk = Thkmatrix(wafer_dict) # Thickness matrix
     _, _, Flat = Flatmatrix(wafer_dict) # Flatness matrix
@@ -332,13 +469,60 @@ def build_slot_cache(wafer_dict) -> SlotCache:
 
 @st.cache_data(show_spinner=False) # Caches results of this function
 def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
-    """Build cache for all slots from cleaned wafer data."""
+    """
+    Build cache for all slots from cleaned wafer data.
+
+    Input
+    ---
+    data: dict
+        Cleaned wafer data dictionary (output of `cleansbw`), with structure:
+        {
+            'Lot': str,
+            'WaferData': {
+                slot_key: {
+                    'SlotNo': str,
+                    'Lot': str,
+                    'Radius': list of float,
+                    'Angle': list of float,
+                    'Profiles': list of 2D lists [[float, float], ...]
+                },
+                ...
+            }
+        }
+
+    Output
+    ---
+    dict of {str: SlotCache}
+        Mapping from slot key (str) to SlotCache object containing precomputed matrices (thickness, flatness, mirrored data).
+    """
     wafers = data.get('WaferData', {}) or {}
     return {k: build_slot_cache(w) for k, w in wafers.items()}
 
 
 # Plot Utilities
 def graph_arrays(c: SlotCache, graph: str):
+    """
+    Select thickness or flatness arrays from a SlotCache.
+
+    Input
+    ---
+    c: SlotCache
+        Cached wafer slot data containing thickness and flatness grids.
+    graph: str
+        - "flat": return flatness data
+        - else: return thickness data
+
+    Output
+    ---
+    tuple
+        (line_array, surface_array, label)
+        - line_array: np.ndarray
+            Original (non-mirrored) 2D array, shape (n_theta, n_radius).
+        - surface_array: np.ndarray
+            Mirrored 2D array, shape (2*n_theta, n_radius), used for plotting full wafer surfaces.
+        - label: str
+            Axis label string ("Flatness (µm)" or "Thickness (µm)").
+    """
     return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
 def graph_label(graph: str, prefix: str = "") -> str:
@@ -399,10 +583,14 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, mask: bool, height: 
     """
     Inputs:
         X,Y,Z: 2D arrays of coordinates and surface values
-        zlabel: string label for z-axis and colorbar
-        p_lo, p_hi: lowest percentile and highest percentile values
-        mask: mask outliers or not
-        height: plot height
+        zlabel: str
+            String label for z-axis and colorbar
+        p_lo, p_hi: float
+            Lowest percentile and highest percentile values
+        mask: bool
+            Mask outliers or not
+        height: int
+            Plot's height (in pixels)
     Output:
         3D plot in Streamlit
     """
@@ -444,11 +632,16 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, m
     """
     Inputs:
         X,Y,Z: 2D arrays of coordinates and surface values
-        zlabel: string for colorbar
-        radius_max: wafer radius
-        p_lo, p_hi : lowest percentile and highest percentile values
-        mask: mask notch or not
-        height: height (pixels)
+        zlabel: str
+            String for colorbar
+        radius_max: float
+            Wafer radius
+        p_lo, p_hi: float
+            Lowest percentile and highest percentile values
+        mask: bool
+            Mask notch or not
+        height: int
+            Plot's height (in pixels)
     Output:
         2D plot in Streamlit
     """
@@ -491,16 +684,24 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
                       waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
     """
     Inputs:
-        r: 1D array of radii
-        line: 1D array of values
-        zlabel: y-axis label
-        title
-        height
-        overlay_pre, overlay_post
-        avg: True if Average Profile checkbox checked
-        waferimg: wafer image
-        rotation_deg: rotation for arrow image
-        positive_only: if True, only plot r>=0
+        r: np.ndarray
+            1D array of radii
+        line: np.ndarray
+            1D array of values
+        zlabel: str
+            y-axis label
+        title: str
+        height: int
+        overlay_pre, overlay_post: np.ndarray or None
+            None by default
+        avg: 
+            True if Average Profile checkbox checked
+        waferimg: str or None
+            Wafer image
+        rotation_deg: float
+            Rotation for arrow image
+        positive_only: bool
+            if True, only plot r>=0
     Output:
         Line chart of a single angle in Streamlit
     """
@@ -580,15 +781,23 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
                    overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
     """
     Inputs:
-        r: 1D radii
-        theta: 1D angles
-        Z_line: 2D array (n_theta, n_radii)
-        zlabel: y-axis label
-        nrows, ncols: subplot grid size
-        overlay_pre, overlay_post: optional PRE/POST overlays
-        avg: True if Average Profile selected
+        r: np.ndarray
+            1D radii
+        theta: np.ndarray
+            1D angles
+        Z_line: np.ndarray
+            2D array (n_theta, n_radii)
+        zlabel: str
+            y-axis label
+        nrows, ncols: 
+            subplot grid size
+        height: int
+        overlay_pre, overlay_post: np.ndarray or None
+            optional PRE/POST overlays
+        avg: 
+            True if Average Profile selected
     Output:
-        Line profile charts in Streamlit
+        Line charts in Streamlit
     """
     r = np.asarray(r, dtype=float)
     Z_line = np.asarray(Z_line, dtype=float)
@@ -646,6 +855,36 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
     Return a list of Slot #'s for user to select in dropdown
+
+    Intput
+    ----------
+    data: dict or None
+        Cleaned wafer data dictionary (output of `cleansbw`) with structure:
+        {
+            'Lot': str,
+            'WaferData': {
+                slot_key: {
+                    'SlotNo': str,
+                    'Lot': str,
+                    ...
+                },
+                ...
+            }
+        }
+
+    Output
+    -------
+    list of tuple (str, str)
+        A list of (display_label, slot_key) pairs, e.g.:
+        [
+            ("Slot 1", "0"),
+            ("Slot 2", "1"),
+            ...
+        ]
+        - display_label : str
+            User-friendly label shown in the dropdown ("Slot <SlotNo>").
+        - slot_key : str
+            Internal key used to look up data in WaferData.
     """
     if not data:
         return []
