@@ -51,6 +51,7 @@ def sort_keys(d): # d = WaferData
 def finite_xy(x: np.ndarray, y: np.ndarray):
     """
     Filter out NaN/Inf values from (x, y) pairs.
+    Used in `plot_line_profile` and `plot_line_grid` to ensure line plots ignore invalid data points.
 
     Input
     ---
@@ -219,7 +220,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
 
 def cleansbw(sbwfile) -> Dict[str, Any]:
     """
-    Convert `sbwinfo` object (output of `parsesbw`) into a cleaned dictionary format.
+    Convert `sbwinfo` object (from `parsesbw`) into a cleaned dictionary format.
 
     Input
     ---
@@ -230,19 +231,15 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
     ---
     dict
         Dictionary with structure:
-        {
-            'Lot': str,
-            'WaferData': {
-                slot_key: {
-                    'SlotNo': str,
-                    'Lot': str,
-                    'Radius': list of float,
-                    'Angle': list of float,
-                    'Profiles': list of 2D lists [[float, float], ...]
-                },
-                ...
-            }
-        }
+        {'Lot': str,
+         'WaferData': {
+             slot_key: {        (slot_key = WaferData[k])
+                'SlotNo': str,
+                'Lot': str,
+                'Radius': list of float,
+                'Angle': list of float,
+                'Profiles': list of 2D lists [[float, float], ...]
+                },...
     """
     lot = getattr(sbwfile, 'Lot', '')
     wd_src = getattr(sbwfile, 'WaferData', {}) or {}
@@ -264,9 +261,9 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
     return {'Lot': lot, 'WaferData': wd_dst}
 
 @st.cache_data(show_spinner=False) # Caches results of this function
-def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]: #***
+def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]: #***
     """
-    Parse and clean .sbw file uploaded by user, and return cleaned dict format
+    Parse (using `parsesbw`) and clean (using `cleansbw`) .sbw file uploaded by user, and return cleaned dict format
 
     Input
     ---
@@ -277,19 +274,15 @@ def parse_and_clean(uploaded_bytes: bytes) -> Dict[str, Any]: #***
     ---
     dict
         Cleaned dictionary in the same format as `cleansbw`, with structure:
-        {
-            'Lot': str,
-            'WaferData': {
-                slot_key: {
-                    'SlotNo': str,
-                    'Lot': str,
-                    'Radius': list of float,
-                    'Angle': list of float,
-                    'Profiles': list of 2D lists [[float, float], ...]
-                },
-                ...
-            }
-        }
+          {'Lot': str,
+         'WaferData': {
+             slot_key: {        (slot_key = WaferData[k])
+                'SlotNo': str,
+                'Lot': str,
+                'Radius': list of float,
+                'Angle': list of float,
+                'Profiles': list of 2D lists [[float, float], ...]
+                },...
     """
     import tempfile
     obj = None
@@ -452,8 +445,8 @@ def build_slot_cache(wafer_dict) -> SlotCache:
     Rmax = finite_max(r, 0.0)
     if theta.size and r.size:
         theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi)) # extends theta by mirroring it across wafer (theta + 180) and % 2pi ensures angles stay in [0,2pi]
-        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0)) #***
-        Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0)) #***
+        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0)) # stacks original (+r) and mirrored (-r) arrays vertically
+        Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0)) # stacks original (+r) and mirrored (-r) arrays vertically
         T, Rm = np.meshgrid(theta_full, r, indexing='ij')
         X_mir = Rm*np.cos(T)
         Y_mir = Rm*np.sin(T)
@@ -476,19 +469,15 @@ def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
     ---
     data: dict
         Cleaned wafer data dictionary (output of `cleansbw`), with structure:
-        {
-            'Lot': str,
-            'WaferData': {
-                slot_key: {
-                    'SlotNo': str,
-                    'Lot': str,
-                    'Radius': list of float,
-                    'Angle': list of float,
-                    'Profiles': list of 2D lists [[float, float], ...]
-                },
-                ...
-            }
-        }
+        {'Lot': str,
+         'WaferData': {
+             slot_key: {        (slot_key = WaferData[k])
+                'SlotNo': str,
+                'Lot': str,
+                'Radius': list of float,
+                'Angle': list of float,
+                'Profiles': list of 2D lists [[float, float], ...]
+                },...
 
     Output
     ---
@@ -502,12 +491,12 @@ def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
 # Plot Utilities
 def graph_arrays(c: SlotCache, graph: str):
     """
-    Select thickness or flatness arrays from a SlotCache.
+    Select thickness or flatness arrays from SlotCache.
 
     Input
     ---
     c: SlotCache
-        Cached wafer slot data containing thickness and flatness grids.
+        Cached wafer slot data containing thickness and flatness matrices.
     graph: str
         - "flat": return flatness data
         - else: return thickness data
@@ -526,6 +515,21 @@ def graph_arrays(c: SlotCache, graph: str):
     return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
 def graph_label(graph: str, prefix: str = "") -> str:
+    """
+    Graph title and label
+
+    Input
+    ---
+    graph : str
+        Graph type, either "flat" or "thk".
+    prefix : str, optional
+        Prefix to prepend ("PRE", "POST", "Average").
+
+    Output
+    ---
+    str
+        Label string ("Flatness", "Thickness", or with prefix, e.g., "PRE Flatness").
+    """
     base = "Flatness" if graph == "flat" else "Thickness"
     if prefix:
         return f"{prefix} {base}"
@@ -533,31 +537,63 @@ def graph_label(graph: str, prefix: str = "") -> str:
 
 def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
     """
-    Clip values between p_lo (lowest percentile) and p_hi (highest percentile)
+    Clip values based on p_lo (lowest percentile) and p_hi (highest percentile).
+
+    Input
+    ---
+    Z: np.ndarray
+        Input array of values (e.g. thickness, flatness, or removal data).
+    p_lo, p_hi: float
+        Lowest percentile and highest percentile values        
+
+    Output
+    ---
+    tuple
+        (Z_clipped, vmin, vmax)
+        - Z_clipped : np.ndarray
+            Copy of Z with values clipped to [vmin, vmax].
+        - vmin : float
+            Lower bound (computed from p_lo).
+        - vmax : float
+            Upper bound (computed from p_hi).
     """
     Zf = Z[np.isfinite(Z)]
     if Zf.size == 0:
-        return Z, 0.0, 1.0
+        return Z, 0.0, 1.0 # if Zf is empty, vmin=0.0 and vmax=1.0 to avoid crash
     vmin = float(np.nanpercentile(Zf, p_lo))
     vmax = float(np.nanpercentile(Zf, p_hi))
     if not np.isfinite(vmin): vmin = 0.0
     if not np.isfinite(vmax): vmax = vmin + 1.0
     if vmin >= vmax:
-        vmax = vmin + 1e-9
+        vmax = vmin + 1e-9 # forces vmin >= vmin to avoid crash
     return np.clip(Z, vmin, vmax), vmin, vmax
 
 def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4 
     """
     Mask notch (outliers) in array using Median Absolute Deviation (MAD).
     Any value further than k*MAD from median is replaced with NaN.
+
+    Input
+    ---
+    Z : np.ndarray
+        Input array of values (e.g. wafer thickness, flatness, or removal data).
+    k : float, optional
+        Threshold multiplier (set to 4).
+        Any value further than k*MAD from the median is considered an outlier.
+
+    Output
+    ---
+    np.ndarray
+        Copy of input array with outliers replaced with NaN.
+
     """
     Zm = np.asarray(Z, dtype=float).copy()
     m = np.isfinite(Zm)
     if not m.any():
         return Zm
-    Zf = Zm[m]
+    Zf = Zm[m] # extract only finite values into Zf
     med = float(np.nanmedian(Zf))
-    mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826 
+    mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826 # 1.4826 = scaling factor to make MAD comparable to standard deviation
     if mad == 0 or not np.isfinite(mad):
         return Zm
     out = np.abs(Zm - med) > (k * mad) # Distance > k x MAD is marked as outlier -> NaN
@@ -570,7 +606,7 @@ def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rota
     base = Image.open(BytesIO(requests.get(base_url).content)).convert("RGBA") # waferimg
     overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA") # arrowimg
     overlay = overlay.resize((overlay_size, overlay_size*3), Image.LANCZOS)
-    overlay = overlay.rotate(rotation_deg, expand=True) # Rotates arrow by rotation_deg set by user through select_slider
+    overlay = overlay.rotate(rotation_deg, expand=True) # rotate arrow by rotation_deg set by user through select_slider
     w, h = base.size
     pos = ((w - overlay.width) // 2, (h - overlay.height) // 2)
     combined = base.copy()
@@ -709,15 +745,15 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     y = np.asarray(line, dtype=float)
     x_full = np.asarray(r, dtype=float)
     y_full = np.asarray(line, dtype=float)
-    if positive_only:
+    if positive_only: # for when Average Profile is selected, to chart only +r
         m = (x_full >= 0) & np.isfinite(y_full)
         x = x_full[m]
         y = y_full[m]
     else:
-        x, y = finite_xy(-x_full, y_full)
+        x, y = finite_xy(-x_full, y_full) # else both +r and -r are charted
     fig = go.Figure()
     # overlay PRE
-    if overlay_pre is not None:
+    if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
         y_pre = np.asarray(overlay_pre, dtype=float)
         if positive_only and y_pre.size == y_full.size:
             y_pre = y_pre[m]
@@ -730,7 +766,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
                 name="PRE", line=dict(width=1.0, color="lightgray")
             ))
     # overlay POST
-    if overlay_post is not None:
+    if overlay_post is not None: # if "Overlay line charts" checkbox is checked
         y_post = np.asarray(overlay_post, dtype=float)
         if positive_only and y_post.size == y_full.size:
             y_post = y_post[m]
@@ -860,24 +896,21 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     ----------
     data: dict or None
         Cleaned wafer data dictionary (output of `cleansbw`) with structure:
-        {
-            'Lot': str,
-            'WaferData': {
-                slot_key: {
-                    'SlotNo': str,
-                    'Lot': str,
-                    ...
-                },
-                ...
-            }
-        }
+        {'Lot': str,
+         'WaferData': {
+             slot_key: {        (slot_key = WaferData[k])
+                'SlotNo': str,
+                'Lot': str,
+                'Radius': list of float,
+                'Angle': list of float,
+                'Profiles': list of 2D lists [[float, float], ...]
+                },...
 
     Output
     -------
     list of tuple (str, str)
         A list of (display_label, slot_key) pairs, e.g.:
-        [
-            ("Slot 1", "0"),
+        [   ("Slot 1", "0"),
             ("Slot 2", "1"),
             ...
         ]
@@ -934,7 +967,7 @@ PRE_CACHE = POST_CACHE = None
 
 if pre_file is not None:
     try:
-        PRE_DATA = parse_and_clean(pre_file.read())
+        PRE_DATA = parsecleansbw(pre_file.read())
         PRE_CACHE = cache_for_data(PRE_DATA)
         st.success(f"Loaded {PRE_DATA.get('Lot', '')}")
     except Exception as e:
@@ -942,7 +975,7 @@ if pre_file is not None:
 
 if post_file is not None:
     try:
-        POST_DATA = parse_and_clean(post_file.read())
+        POST_DATA = parsecleansbw(post_file.read())
         POST_CACHE = cache_for_data(POST_DATA)
         st.success(f"Loaded {POST_DATA.get('Lot', '')}")
     except Exception as e:
@@ -1003,7 +1036,7 @@ if profile_mode in ("PRE", "POST"):
 
                         lot = data.get('WaferData', {}).get(slot, {}).get('Lot', data.get('Lot', ''))
                         slotno = data.get('WaferData', {}).get(slot, {}).get('SlotNo', slot)
-                        st.subheader(f"Average {graph_label(graph)}\n{lot}({slotno})")
+                        st.subheader(f"{graph_label(graph, 'Average')}\n{lot}({slotno})")
 
                         plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
 
@@ -1124,7 +1157,7 @@ else:
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-                    st.subheader(f"Average {graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
+                    st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
 
                     overlay_pre = A_avg if overlay_prepost_lines else None
                     overlay_post = B_avg if overlay_prepost_lines else None
