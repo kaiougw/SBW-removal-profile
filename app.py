@@ -24,7 +24,7 @@ def floatlist(a) -> list:
 
 def floatlist2d(a) -> list:
     """
-    Convert array-like input into 2D list of floats to ensure numbers are in numeric, not str or int.
+    Convert array-like input into a 2D list of floats to ensure numbers are in numeric, not str or int.
     Called inside `cleansbw` for Profile to preserve its 2D structure ([thickness, flatness] for each radius).
     """
     a = np.asarray(a, dtype=float)
@@ -35,16 +35,19 @@ def floatlist2d(a) -> list:
 def reset_plot(flag_key: str):
     """
     A reset switch to control session state.
+    Used in `st.multiselect`.
     Changing slot options resets session state, requiring Plot button to be pressed again.
     """
-    st.session_state[flag_key] = False # False -> no plotting until Plot button is pressed
+    st.session_state[flag_key] = False # False -> no plotting until Plot button is pressed.
+    # Streamlit reruns when user interacts with the application (e.g., selecting slots). 
+    # st.session_state[] ensures that the variable stored in the session state remains the same (st.session_state[flag_key]=False).
 
 def sort_keys(d): # d = WaferData
     """
     Sorts dictionary keys (slot IDs) as floats if possible, otherwise strings
     """
     try:
-        return sorted(d.keys(), key=lambda k: float(k))
+        return sorted(d.keys(), key=float) # key=float converts each key into a float before sorting.
     except Exception:
         return sorted(d.keys(), key=str)
 
@@ -61,14 +64,14 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
         1D array of y-coordinates.
 
     Ouput
-    ----
-    tuple of np.ndarray
+    ---
+    tuple (ordered, immutable list) of np.ndarray
         (x_filtered, y_filtered) as arrays
     """
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     m = np.isfinite(x) & np.isfinite(y)
-    if not m.any():
+    if not m.any(): # if no valid data point exists, return two empty arrays.
         return (np.array([]), np.array([]))
     return (x[m], y[m])
 
@@ -263,7 +266,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
 @st.cache_data(show_spinner=False) # Caches results of this function
 def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
     """
-    Parse (using `parsesbw`) and clean (using `cleansbw`) .sbw file uploaded by user, and return cleaned dict format
+    Parse (using `parsesbw`) and clean (using `cleansbw`) .sbw file uploaded by user, and return cleaned dict format.
 
     Input
     ---
@@ -329,9 +332,9 @@ def Thkmatrix(wafer):
     nt, nr = len(theta), len(r)
     Thk = np.full((nt, nr), np.nan, dtype=float) # create 2D array filled with NaN, shape (nt, nr)
     for i in range(nt): # loop over each angle i and get corresponding Thk data at every r
-        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
-        if line.ndim == 2 and line.shape[1] > 0:
-            Thk[i, :min(nr, line.shape[0])] = line[:nr, 0]
+        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float) # if there is a profile available `(i < len(profiles))``, convert it to a float array.
+        if line.ndim == 2 and line.shape[1] > 0: # check if line is a 2D array with at least one column.
+            Thk[i, :min(nr, line.shape[0])] = line[:nr, 0] # fill row i with Thk.
         else:
             Thk[i, :min(nr, line.size)] = line.ravel()[:nr]
     return r, theta, Thk
@@ -388,7 +391,7 @@ class SlotCache:
 
 def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
     """
-    Return max of finite values in array, default if empty.
+    Return max of finite values in array, default=0.0 if empty.
     Used to find Rmax, which is used to draw wafer outline (line 430-439).
 
     Input
@@ -710,7 +713,7 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, m
         xaxis_title="Radius (mm)",
         yaxis_title="Radius (mm)",
         aspectmode="data",
-        camera=dict(eye=dict(x=0, y=0, z=11), up=dict(x=-1, y=0, z=0))
+        camera=dict(eye=dict(x=0, y=0, z=13), up=dict(x=-1, y=0, z=0))
     )
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
@@ -989,13 +992,16 @@ if profile_mode in ("PRE", "POST"):
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
-        plot_key = f"do_plot_{profile_mode}"
+        plot_key = f"do_plot_{profile_mode}" 
         sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
-                            on_change=reset_plot, args=(plot_key,)) # on_change=reset_plot -> Changing slots resets session state, requiring Plot button to be pressed again
+                            on_change=reset_plot, args=(plot_key,)) 
+        # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
+        # arg=(plot_key,) passes `plot_key=f"do_plot_{profile_mode}"` as the argument to `reset_plot`.
+        #>>> "When Slots are changed, run `reset_plot` function and set st.session_state[plot_key]=False."
 
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
         if st.button("Plot", key=f"plot_btn_{profile_mode}"):
-            st.session_state[plot_key] = True # Plot button as trigger
+            st.session_state[plot_key] = True # Plot button as the trigger
 
         prev_key = f"prev_avg_{profile_mode}"
         if prev_key not in st.session_state:
@@ -1004,7 +1010,7 @@ if profile_mode in ("PRE", "POST"):
             st.session_state[prev_key] = avg_profiles
             st.session_state[plot_key] = False
 
-        if st.session_state.get(plot_key, False):
+        if st.session_state.get(plot_key, False): # check if st.session_state[plot_key] is True. Plot only if st.session_state[plot_key]=True.
             if not sel_keys:
                 st.warning("Choose at least one slot.")
             else:
