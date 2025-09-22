@@ -651,9 +651,9 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, mask: bool, height: 
                     "usecolormap": True,
                     "highlight": True,
                     "project": {"z": True},
-                    "start": vmin,
-                    "end": vmax,
-                    "size": (vmax - vmin) / 20 if vmax > vmin else 1.0
+                    "start": vmin, # lowest z-value where contour lines begin.
+                    "end": vmax, # highest z-value where contour lines ends.
+                    "size": (vmax - vmin) / 20 if vmax > vmin else 1.0 # size sets the interval between contour lines.
                 }
             }
         )
@@ -663,7 +663,7 @@ def plot_3d(X, Y, Z, zlabel: str, p_lo: float, p_hi: float, mask: bool, height: 
         yaxis_title="Radius (mm)",
         zaxis_title=zlabel,
         aspectmode="manual",
-        aspectratio=dict(x=1, y=1, z=0.7)
+        aspectratio=dict(x=1, y=1, z=1)
     )
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
