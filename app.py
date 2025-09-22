@@ -38,7 +38,7 @@ def reset_plot(flag_key: str):
     Used in `st.multiselect`.
     Changing slot options resets session state, requiring Plot button to be pressed again.
     """
-    st.session_state[flag_key] = False # False -> no plotting until Plot button is pressed.
+    st.session_state[flag_key] = False # False -> no plotting until Plot button is clicked.
     # Streamlit reruns when user interacts with the application (e.g., selecting slots). 
     # st.session_state[] ensures that the variable stored in the session state remains the same (st.session_state[flag_key]=False).
 
@@ -332,7 +332,7 @@ def Thkmatrix(wafer):
     nt, nr = len(theta), len(r)
     Thk = np.full((nt, nr), np.nan, dtype=float) # create 2D array filled with NaN, shape (nt, nr)
     for i in range(nt): # loop over each angle i and get corresponding Thk data at every r
-        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float) # if there is a profile available `(i < len(profiles))``, convert it to a float array.
+        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float) # if there is a profile available `(i < len(profiles))`, convert it to a float array.
         if line.ndim == 2 and line.shape[1] > 0: # check if line is a 2D array with at least one column.
             Thk[i, :min(nr, line.shape[0])] = line[:nr, 0] # fill row i with Thk.
         else:
@@ -389,10 +389,10 @@ class SlotCache:
     Thk_mir: np.ndarray
     Flat_mir: np.ndarray
 
-def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
+def finite_max(arr: np.ndarray, default: float = 0.0) -> float: # This function is not used unless outline is shown on 2D plot (line 701-710)
     """
     Return max of finite values in array, default=0.0 if empty.
-    Used to find Rmax, which is used to draw wafer outline (line 430-439).
+    Used to find Rmax, which is used to draw wafer outline (line 701-710).
 
     Input
     ---
@@ -409,7 +409,7 @@ def finite_max(arr: np.ndarray, default: float = 0.0) -> float:
     af = arr[np.isfinite(arr)]
     return float(np.max(af)) if af.size else default
 
-def build_slot_cache(wafer_dict) -> SlotCache:
+def build_SlotCache(wafer_dict) -> SlotCache: #***
     """
     Take wafer_dict and builds SlotCache
 
@@ -439,7 +439,7 @@ def build_slot_cache(wafer_dict) -> SlotCache:
         - Rmax: float
             Maximum finite radius (used for wafer outline).
         - X_mir, Y_mir: np.ndarray
-            Cartesian grids after mirroring across wafer diameter.
+            Cartesian matrices after mirroring across wafer diameter.
         - Thk_mir, Flat_mir: np.ndarray
             Thickness/Flatness grids extended with mirrored halves to cover full 360°.
     """
@@ -448,11 +448,12 @@ def build_slot_cache(wafer_dict) -> SlotCache:
     Rmax = finite_max(r, 0.0)
     if theta.size and r.size:
         theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi)) # extends theta by mirroring it across wafer (theta + 180) and % 2pi ensures angles stay in [0,2pi]
-        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0)) # stacks original (+r) and mirrored (-r) arrays vertically
+        # (r, theta) = (|r|, theta + pi) when r<0
+        Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0)) # stacks original (+r) and mirrored (-r) arrays vertically; ::-1 reverses sequence
         Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0)) # stacks original (+r) and mirrored (-r) arrays vertically
         T, Rm = np.meshgrid(theta_full, r, indexing='ij')
-        X_mir = Rm*np.cos(T)
-        Y_mir = Rm*np.sin(T)
+        X_mir = Rm*np.cos(T) # polar (r,theta) to Cartesian x
+        Y_mir = Rm*np.sin(T) # polar (r,theta) to Cartesian y
     else:
         Thk_full = np.empty((0, 0))
         Flat_full = np.empty((0, 0))
@@ -463,10 +464,10 @@ def build_slot_cache(wafer_dict) -> SlotCache:
         Rmax=Rmax, X_mir=X_mir, Y_mir=Y_mir, Thk_mir=Thk_full, Flat_mir=Flat_full
     )
 
-@st.cache_data(show_spinner=False) # Caches results of this function
+@st.cache_data(show_spinner=False) # Caches results of this function; don't rerun this function for the same input
 def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
     """
-    Build cache for all slots from cleaned wafer data.
+    Takes the cleaned wafer data dictionary, loops through all slots, builds a SlotCache for each one, and returns them in a dictionary keyed by slot ID
 
     Input
     ---
@@ -488,11 +489,11 @@ def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
         Mapping from slot key (str) to SlotCache object containing precomputed matrices (thickness, flatness, mirrored data).
     """
     wafers = data.get('WaferData', {}) or {}
-    return {k: build_slot_cache(w) for k, w in wafers.items()}
+    return {k: build_SlotCache(w) for k, w in wafers.items()}
 
 
 # Plot Utilities
-def graph_arrays(c: SlotCache, graph: str):
+def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data needed for line charts or 2D plots. 
     """
     Select thickness or flatness arrays from SlotCache.
 
@@ -508,9 +509,9 @@ def graph_arrays(c: SlotCache, graph: str):
     ---
     tuple
         (line_array, surface_array, label)
-        - line_array: np.ndarray
+        - line_array: np.ndarray -> for line charts, so not mirrored
             Original (non-mirrored) 2D array, shape (n_theta, n_radius).
-        - surface_array: np.ndarray
+        - surface_array: np.ndarray -> for 2D plots, so mirrored
             Mirrored 2D array, shape (2*n_theta, n_radius), used for plotting full wafer surfaces.
         - label: str
             Axis label string ("Flatness (µm)" or "Thickness (µm)").
@@ -569,7 +570,7 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
     if not np.isfinite(vmax): vmax = vmin + 1.0
     if vmin >= vmax:
         vmax = vmin + 1e-9 # forces vmin >= vmin to avoid crash
-    return np.clip(Z, vmin, vmax), vmin, vmax
+    return np.clip(Z, vmin, vmax), vmin, vmax # clip() limits Z to values within range (vmin, vmax)
 
 def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4 
     """
@@ -609,9 +610,9 @@ def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rota
     base = Image.open(BytesIO(requests.get(base_url).content)).convert("RGBA") # waferimg
     overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA") # arrowimg
     overlay = overlay.resize((overlay_size, overlay_size*3), Image.LANCZOS)
-    overlay = overlay.rotate(rotation_deg, expand=True) # rotate arrow by rotation_deg set by user through select_slider
+    overlay = overlay.rotate(rotation_deg, expand=True) # rotate arrow by rotation_deg set by user through select_slider.
     w, h = base.size
-    pos = ((w - overlay.width) // 2, (h - overlay.height) // 2)
+    pos = ((w - overlay.width) // 2, (h - overlay.height) // 2) # arrowimg centered inside waferimg.
     combined = base.copy()
     combined.paste(overlay, pos, overlay)
     return combined
