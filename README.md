@@ -163,5 +163,5 @@ def build_SlotCache(wafer_dict) -> SlotCache:
 This code uses the polar-coordinate identity:
 
 $$
-(r, \theta)\equiv(|r|, \theta+\pi)\;when\;r<0 
+(r, \theta)\equiv(|r|, \theta+\pi)\{space}when\{space}r<0 
 $$
