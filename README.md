@@ -32,12 +32,16 @@
 
 ### Top controls
 
+![image.png](image.png)
+
 - Upload PRE .sbw | Upload POST .sbw: load .sbw files.
 - **`Thickness | Flatness`** dropdown menu: select graph mode.
 - **`PRE | POST | REMOVAL`** segmented control: select profile mode.
 - **`Average Profile`** checkbox: switch to average profile mode.
 
 ### Sidebar — Display controls
+
+![image.png](image%201.png)
 
 - `Color clip low (%)`: slide to set the lowest percentile used for color range to prevent notch (outlier values) from skewing colors (default 0.5).
 - `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
@@ -46,11 +50,15 @@
 
 ### Angle selection
 
+![image.png](image%202.png)
+
 - **Angle** **slider**: slide to select an angle for a single-angle line chart.
 
 The angle and direction at which the wafer has been line-scanned is indicated by the arrow shown on the icon of a wafer on top right of the chart.
 
 ### Controls and interactions
+
+![image.png](image%203.png)
 
 - **Hover**: shows x/y/z values.
 - **Pan/Zoom**: use mouse to drag/scroll in plots.
