@@ -32,16 +32,12 @@
 
 ### Top controls
 
-![image.png](image.png)
-
 - Upload PRE .sbw | Upload POST .sbw: load .sbw files.
 - **`Thickness | Flatness`** dropdown menu: select graph mode.
 - **`PRE | POST | REMOVAL`** segmented control: select profile mode.
 - **`Average Profile`** checkbox: switch to average profile mode.
 
 ### Sidebar — Display controls
-
-![image.png](image%201.png)
 
 - `Color clip low (%)`: slide to set the lowest percentile used for color range to prevent notch (outlier values) from skewing colors (default 0.5).
 - `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
@@ -50,15 +46,11 @@
 
 ### Angle selection
 
-![image.png](image%202.png)
-
 - **Angle** **slider**: slide to select an angle for a single-angle line chart.
 
 The angle and direction at which the wafer has been line-scanned is indicated by the arrow shown on the icon of a wafer on top right of the chart.
 
 ### Controls and interactions
-
-![image.png](image%203.png)
 
 - **Hover**: shows x/y/z values.
 - **Pan/Zoom**: use mouse to drag/scroll in plots.
@@ -184,10 +176,10 @@ def build_SlotCache(wafer_dict) -> SlotCache:
     )
 ```
 
-`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+$r$) array and the mirrored (-$r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to make a full $0$-$360\degree$ matrix. This code uses the following polar-coordinate identity: *change \; to \{ }
+`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+$r$) array and the mirrored (-$r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$-$360\degree$ matrix. This code uses the following polar-coordinate identity:
 
 $$
-(r, \theta)\equiv(|r|, \theta+\pi)\ when\; r<0 
+(r, \theta)\equiv(|r|, \theta+\pi)\{ }when\{ }r<0 
 $$
 
 ### `masknotch()`
@@ -210,4 +202,4 @@ def masknotch(Z: np.ndarray, k: float=4):
     return Zm
 ```
 
-Any finite values whose absolute distance from the median is greater than $k\times MAD$ is marked as outliers and is replaced with `NaN`. $k$ is the outlier threshold, which has been set to 4. (A lower $k$ is a stricter filter that would mask more data as outliers.) The function returns a copy of the input array with outliers replaced with `NaN`.
+Any finite values whose absolute distance from the median is greater than $k\times MAD$ are marked as outliers and are replaced with `NaN`. $k$ is the outlier threshold, which has been set to 4. (A lower $k$ is a stricter filter that would mask more data as outliers.) The function returns a copy of the input array with outliers replaced with `NaN`.
