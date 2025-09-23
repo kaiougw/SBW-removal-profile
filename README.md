@@ -48,7 +48,7 @@
 
 - **Angle** **slider**: slide to select an angle for a single-angle line chart.
 
-The angle and direction at which the wafer has been line-scanned is indicated by the arrow shown on the icon of a wafer on top right of the chart.
+The angle and direction at which the wafer has been line-scanned is indicated by the arrow shown on the icon of a wafer on the top right of the chart.
 
 ### Controls and interactions
 
@@ -70,7 +70,7 @@ def reset_plot(flag_key: str):
 	st.session_state[flag_key] = False 
 ```
 
-Streamlit reruns when the user interacts with the application (e.g., selecting new slots). `st.session_state[flag_key] = False` ensures that plotting is activated by the **Plot** button when the application reruns.
+Streamlit reruns when the user interacts with the application (e.g., selecting new slots). `st.session_state[flag_key] = False` ensures that plotting is activated by the **Plot** button.
 
 The function is used in `st.multiselect`, for example: 
 
