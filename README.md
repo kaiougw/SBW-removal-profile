@@ -33,8 +33,8 @@
 ### Top controls
 
 - Upload PRE .sbw | Upload POST .sbw: load .sbw files.
-- **`Thickness** | **Flatness`** dropdown menu: select graph mode.
-- **`PRE** | **POST** | **REMOVAL`** segmented control: select profile mode.
+- **`Thickness | Flatness`** dropdown menu: select graph mode.
+- **`PRE | POST | REMOVAL`** segmented control: select profile mode.
 - **`Average Profile`** checkbox: switch to average profile mode.
 
 ### Sidebar — Display controls
