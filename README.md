@@ -1,4 +1,4 @@
-# SBW Removal Profile — User Manual
+# User Manual
 
 **App type**: Streamlit
 
@@ -57,9 +57,11 @@ The angle and direction at which the wafer has been line-scanned is indicated by
 - **Turnable rotation**: use mouse to drag and turn the surfaces.
 - (**`REMOVAL`** only) **▶️** / **◀️ button**: to switch between 2D and 3D plots for PRE and POST.
 
+---
+
 # Code Explanation
 
-### **`reset_plot`**
+### **`reset_plot()`**
 
 **A reset switch to control session state.** 
 
@@ -93,11 +95,11 @@ Changing slot options resets session state, requiring the **Plot** button to be 
                 if avg_profiles:
 ```
 
-Then, the lines of code above check if `st.session_state[plot_key]` is `True`. Plotting is activated only if slots have been selected and the **Plot** button has been clicked by the user. 
+Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting is activated only if slots have been selected and the **Plot** button has been clicked by the user. 
 
-### `average_profile`
+### `average_profile()`
 
-**Compute average radial profile by combining both +r and -r sides.**
+**Compute average radial profile by combining both +$r$ and -**$r$ **sides.**
 
 ```python
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
@@ -106,14 +108,14 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
       return np.array([])
   Z_full = np.vstack([Z_line, Z_line[:, ::-1]]) 
   with np.errstate(all='ignore'):
-      return np.nanmean(Z_full, axis=0) 
+      return np.nanmean(Z_full, axis=0)
 ```
 
-`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+r) array and the mirrored (-r) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses error messages.)
+`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+$r$)  array and the mirrored (-$r$) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses error messages.)
 
-### `Thkmatrix` & `Flatmatrix`
+### `Thkmatrix()` & `Flatmatrix()`
 
- **Build 2D thickness/flatness matrix with rows = Angle, columns = Radius**
+ **Build a 2D thickness/flatness matrix with rows = Angle and columns = Radius**
 
 ```python
 def Thkmatrix(wafer):
@@ -129,11 +131,27 @@ def Thkmatrix(wafer):
         else:
             Thk[i, :min(nr, line.size)] = line.ravel()[:nr]
     return r, theta, Thk
+    
+def Flatmatrix(wafer):
+    r = np.asarray(wafer.get('Radius', []), dtype=float)
+    theta = np.asarray(wafer.get('Angle', []), dtype=float)
+    profiles = wafer.get('Profiles', [])
+    nt, nr = len(theta), len(r)
+    Flat = np.full((nt, nr), np.nan, dtype=float)
+    for i in range(nt):
+        line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
+        if line.ndim == 2 and line.shape[1] > 1:
+            Flat[i, :min(nr, line.shape[0])] = line[:nr, 1]
+        else:
+            Flat[i, :min(nr, line.size)] = line.ravel()[:nr]
+    return r, theta, Flat
 ```
 
-### `build_SlotCache`
+This function loops over every angle $i$ and retrieves the corresponding `Thk` or `Flat` data at every $r$.  
 
-**Take wafer_dict and build `SlotCache`.**
+### `build_SlotCache()`
+
+**Take `wafer_dict` and build `SlotCache`.**
 
 ```python
 def build_SlotCache(wafer_dict) -> SlotCache:
@@ -158,10 +176,30 @@ def build_SlotCache(wafer_dict) -> SlotCache:
     )
 ```
 
-`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi]$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+r) array and the mirrored (-r) array vertically (`::-1` reverses the sequence). 
-
-This code uses the polar-coordinate identity:
+`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+$r$) array and the mirrored (-$r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to make a full $0$-$360\degree$ matrix. This code uses the following polar-coordinate identity: *change \; to \{ }
 
 $$
-(r, \theta)\equiv(|r|, \theta+\pi)\{ }when\{ }r<0 
+(r, \theta)\equiv(|r|, \theta+\pi)\ when\; r<0 
 $$
+
+### `masknotch()`
+
+**Mask notch (outliers) in the array using Median Absolute Deviation (MAD).**
+
+```python
+def masknotch(Z: np.ndarray, k: float=4):
+    Zm = np.asarray(Z, dtype=float).copy()
+    m = np.isfinite(Zm)
+    if not m.any():
+        return Zm
+    Zf = Zm[m]
+    med = float(np.nanmedian(Zf))
+    mad = float(np.nanmedian(np.abs(Zf - med))) * 1.4826
+    if mad == 0 or not np.isfinite(mad):
+        return Zm
+    out = np.abs(Zm - med) > (k * mad)
+    Zm[out] = np.nan
+    return Zm
+```
+
+Any finite values whose absolute distance from the median is greater than $k\times MAD$ is marked as outliers and is replaced with `NaN`. $k$ is the outlier threshold, which has been set to 4. (A lower $k$ is a stricter filter that would mask more data as outliers.) The function returns a copy of the input array with outliers replaced with `NaN`.
