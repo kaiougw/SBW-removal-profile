@@ -749,17 +749,17 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     y = np.asarray(line, dtype=float)
     x_full = np.asarray(r, dtype=float)
     y_full = np.asarray(line, dtype=float)
-    if positive_only: # for when Average Profile is selected, to chart only +r
+    if positive_only: # when Average Profile is selected, chart only +r
         m = (x_full >= 0) & np.isfinite(y_full)
         x = x_full[m]
         y = y_full[m]
-    else:
-        x, y = finite_xy(-x_full, y_full) # else both +r and -r are charted
+    else: # else both +r and -r are charted
+        x, y = finite_xy(-x_full, y_full) # -x_full flips line chart horizontally (like Kobelco software)
     fig = go.Figure()
     # overlay PRE
     if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
         y_pre = np.asarray(overlay_pre, dtype=float)
-        if positive_only and y_pre.size == y_full.size:
+        if positive_only and y_pre.size == y_full.size: # when Average Profile is selected
             y_pre = y_pre[m]
         y_pre = y_pre[:x.size]
         x_pre = x[:y_pre.size]
@@ -772,7 +772,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     # overlay POST
     if overlay_post is not None: # if "Overlay line charts" checkbox is checked
         y_post = np.asarray(overlay_post, dtype=float)
-        if positive_only and y_post.size == y_full.size:
+        if positive_only and y_post.size == y_full.size: # when Average Profile is selected
             y_post = y_post[m]
         y_post = y_post[:x.size]
         x_post = x[:y_post.size]
@@ -844,8 +844,8 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     if Z_line.size == 0:
         return
     fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
-    n = Z_line.shape[0]
-    count = min(n, nrows*ncols)
+    n = Z_line.shape[0] # number of angles (scan lines)
+    count = min(n, nrows*ncols) # ensures no more plots than scan lines
     theta = np.asarray(theta, dtype=float)
     angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
     has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
@@ -853,18 +853,18 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     for i in range(count):
         row, col = i // ncols + 1, i % ncols + 1
         y = Z_line[i, :]
-        x_i, y_i = finite_xy(-r, y)
+        x_i, y_i = finite_xy(-r, y) # -r flips line charts horizontally (like Kobelco software)
         ang = angs[i] if i < angs.size else np.nan
         if has_pre:
             y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
-            x_pre, y_pre = finite_xy(r, y_pre)
+            x_pre, y_pre = finite_xy(-r, y_pre) # -r flips line charts horizontally (like Kobelco software)
             if y_pre.size:
                 fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
                                          line=dict(width=1.0, color="lightgray"),
                                          name="PRE"), row=row, col=col)
         if has_post:
             y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
-            x_post, y_post = finite_xy(r, y_post)
+            x_post, y_post = finite_xy(-r, y_post) # -r flips line charts horizontally (like Kobelco software)
             if y_post.size:
                 fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
                                          line=dict(width=1.0, color="lightgray"),
