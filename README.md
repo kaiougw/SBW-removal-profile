@@ -111,7 +111,7 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
       return np.nanmean(Z_full, axis=0)
 ```
 
-`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+ $r$)  array and the mirrored (- $r$) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses error messages.)
+`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+ $r$)  array and the mirrored (- $r$) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses warning messages.)
 
 ### `Thkmatrix()` & `Flatmatrix()`
 
