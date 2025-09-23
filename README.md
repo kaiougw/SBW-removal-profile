@@ -95,7 +95,7 @@ Changing slot options resets session state, requiring the **Plot** button to be 
                 if avg_profiles:
 ```
 
-Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting is activated only if slots have been selected and the **Plot** button has been clicked by the user. 
+Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting is activated only when the user has selected slots and clicked the **Plot** button. 
 
 ### `average_profile()`
 
