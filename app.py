@@ -790,7 +790,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             name="Removal"
         ))
     fig.update_layout(
-        margin=dict(l=30, r=30, t=30, b=30),
+        margin=dict(l=30, r=30, t=30, b=30), # adjust margins
         xaxis_title="Radius (mm)",
         yaxis_title=zlabel,
         hovermode="x unified",
@@ -882,7 +882,7 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
         if col == 1:
             fig.update_yaxes(title_text=zlabel, row=row, col=col)
-    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30))
+    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30)) # adjust margins
     for r_i in range(1, nrows+1):
         for c_i in range(1, ncols+1):
             fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
@@ -894,10 +894,10 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
-    Return a list of Slot #'s for user to select in dropdown menu
+    Return a list of Slot ID's for user to select in dropdown menu
 
     Intput
-    ----------
+    ---
     data: dict or None
         Cleaned wafer data dictionary (output of `cleansbw`) with structure:
         {'Lot': str,
@@ -911,7 +911,7 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
                 },...
 
     Output
-    -------
+    ---
     list of tuple (str, str)
         A list of (display_label, slot_key) pairs
         - display_label: str
@@ -919,13 +919,13 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
         - slot_key : str
             Internal key used to look up data in WaferData.
     """
-    if not data:
+    if not data: # if data is empty, return an empty list (to prevent errors)
         return []
     disp = []
     wafers = data.get('WaferData', {}) or {}
-    for k in sort_keys(wafers):
-        ref = wafers.get(k, {}) or {}
-        disp.append((f"Slot {ref.get('SlotNo', k)}", k))
+    for k in sort_keys(wafers): # sort_keys used so that keys are interpreted as numbers and sorted numerically.
+        ref = wafers.get(k, {}) or {} # ref = dict of wafer info for a specific slot.
+        disp.append((f"Slot {ref.get('SlotNo', k)}", k)) 
     return disp
 
 # UI
