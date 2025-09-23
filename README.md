@@ -22,7 +22,7 @@
 5. (Optional) Check **`Overlay line charts`** in the sidebar to show PRE/POST on top of REMOVAL line charts.
 6. Click **`Plot`**.
 
-### View average wafer profiles
+### View average profiles
 
 1. Check **`Average Profile`**.
 2. In PRE/POST profile mode: plots the average radial profile for the selected profile mode.
@@ -39,10 +39,10 @@
 
 ### Sidebar — Display controls
 
-- `Color clip low (%)` : slide to set the lowest percentile used for color range to prevent notch (outlier values) from skewing colors (default 0.5).
-- `Color clip high (%)` : slide to set the highest percentile used for color range (default 100).
-- `Mask notch` : replaces notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent notch from skewing colors.
-- (**`REMOVAL`** only) `Overlay line charts` : overlays PRE/POST lines on removal line plots.
+- `Color clip low (%)`: slide to set the lowest percentile used for color range to prevent notch (outlier values) from skewing colors (default 0.5).
+- `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
+- `Mask notch`: replaces notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent notch from skewing colors.
+- (**`REMOVAL`** only) `Overlay line charts`: overlays PRE/POST lines on removal line plots.
 
 ### Angle selection
 
@@ -53,6 +53,6 @@ The angle and direction at which the wafer has been line-scanned is indicated by
 ### Controls and interactions
 
 - **Hover**: shows x/y/z values.
-- **Pan/Zoom**: use mouse to drag/scroll in plots.
-- **Turnable rotation**: use mouse to drag and turn the surfaces.
+- **Pan/Zoom**: use the mouse to drag/scroll in plots.
+- **Turnable rotation**: use the mouse to drag and turn the surfaces.
 - (**`REMOVAL`** only) **▶️ / ◀️ button**: to switch between 2D and 3D plots for PRE and POST.
