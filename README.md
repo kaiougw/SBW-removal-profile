@@ -1,4 +1,4 @@
-# SBW Removal Profile — User Manual
+# User Manual
 
 **App type**: Streamlit
 
