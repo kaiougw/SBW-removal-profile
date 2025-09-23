@@ -4,7 +4,7 @@
 
 ## Common Tasks
 
-### A. View PRE or POST wafer profiles
+### View PRE or POST wafer profiles
 
 1. Upload a PRE or POST .sbw file.
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
@@ -13,7 +13,7 @@
 5. (Optional) Check **`Mask notch`** in the sidebar to mask notch and filter out outlier values.
 6. Click **`Plot`**.
 
-### B. View REMOVAL wafer profile
+### View REMOVAL wafer profile
 
 1. Upload **both** PRE and POST .sbw files.
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
@@ -22,7 +22,7 @@
 5. (Optional) Check **`Overlay line charts`** in the sidebar to show PRE/POST on top of REMOVAL line charts.
 6. Click **`Plot`**.
 
-### C. View average wafer profiles
+### View average wafer profiles
 
 1. Check **`Average Profile`**.
 2. In PRE/POST profile mode: plots the average radial profile for the selected profile mode.
