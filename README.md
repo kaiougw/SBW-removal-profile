@@ -99,7 +99,7 @@ Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting 
 
 ### `average_profile()`
 
-**Compute average radial profile by combining both +$r$ and -$r$ sides.**
+**Compute average radial profile by combining both +**$r$** and -**$r$** sides.**
 
 ```python
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
