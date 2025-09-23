@@ -6,7 +6,7 @@
 
 ### View PRE or POST wafer profiles
 
-1. Upload a PRE or POST .sbw file.
+1. Upload a PRE or POST `.sbw` file.
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
 3. Select **`PRE`** or **`POST`** in the segmented control.
 4. Select one or more **Slots** from the multiselect dropdown menu. If multiple slots are selected, the plots are displayed in order.
@@ -15,7 +15,7 @@
 
 ### View REMOVAL wafer profile
 
-1. Upload **both** PRE and POST .sbw files.
+1. Upload **both** PRE and POST `.sbw` files.
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
 3. Select **`REMOVAL`** in the segmented control.
 4. Select PRE slots and POST slots. If counts differ, the slots are paired in order.
@@ -32,7 +32,7 @@
 
 ### Top controls
 
-- Upload PRE .sbw | Upload POST .sbw: load .sbw files.
+- Upload PRE .sbw | Upload POST .sbw: load `.sbw` files.
 - **`Thickness | Flatness`** dropdown menu: select graph mode.
 - **`PRE | POST | REMOVAL`** segmented control: select profile mode.
 - **`Average Profile`** checkbox: switch to average profile mode.
@@ -60,6 +60,8 @@ The angle and direction at which the wafer has been line-scanned is indicated by
 ---
 
 # Code Explanation
+
+## Utility Functions
 
 ### **`reset_plot()`**
 
@@ -95,11 +97,11 @@ Changing slot options resets session state, requiring the **Plot** button to be 
                 if avg_profiles:
 ```
 
-Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting is activated only when the user has selected slots and clicked the **Plot** button. 
+Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting is activated only when the user has selected slots and clicked the **Plot** button.
 
 ### `average_profile()`
 
-**Compute average radial profile by combining both + $r$ and - $r$ sides.**
+**Compute average radial profile by combining both + $r$ and -** $r$ **sides.**
 
 ```python
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
@@ -113,9 +115,38 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
 
 `Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+ $r$)  array and the mirrored (- $r$) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses warning messages.)
 
+## SBW File Parsing and Cleaning
+
+### `parsecleansbw()`
+
+**Parse (using `parsesbw()`) and clean (using `cleansbw()`) `.sbw` file uploaded by the user, and return cleaned dict format.**
+
+```python
+def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
+    import tempfile
+    obj = None
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".sbw") as tmp:
+        tmp.write(uploaded_bytes)
+        tmp_path = tmp.name
+    try:
+        obj = parsesbw(tmp_path)
+        return cleansbw(obj)
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+```
+
+- `parsesbw()` parses the raw `.sbw` file (using a file path) and returns an `sbwinfo` object.
+- `cleansbw()` takes an `sbwinfo` object and converts it into a clean dictionary.
+- `parsecleansbw()` bridges these two functions: it takes the raw file bytes uploaded by the user, writes them into a temporary `.sbw` file on disk, so that it can use `parsesbw()` to parse that file and use `cleansbw()` to convert it into a clean dictionary, which is the final output of this function. In essence, this function returns the output of `cleansbw()`, but its input is the uploaded file bytes instead of a file path.
+
+## Wafer Matrix & Slot Caching
+
 ### `Thkmatrix()` & `Flatmatrix()`
 
- **Build a 2D thickness/flatness matrix with rows = Angle and columns = Radius.**
+ **Build a 2D thickness/flatness matrix with rows = Angle and columns = Radius**
 
 ```python
 def Thkmatrix(wafer):
@@ -176,11 +207,13 @@ def build_SlotCache(wafer_dict) -> SlotCache:
     )
 ```
 
-`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+ $r$) array and the mirrored (- $r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$ - $360\degree$ matrix. This code uses the following polar-coordinate identity:
+`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+ $r$) array and the mirrored (- $r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$ - $360\degree$ matrix. This code uses the following polar-coordinate identity: *change \; to \{ }
 
 $$
-(r, \theta)\equiv(|r|, \theta+\pi)\{ }when\{ }r<0 
+(r, \theta)\equiv(|r|, \theta+\pi)\ when\; r<0 
 $$
+
+## Plot Utilities
 
 ### `masknotch()`
 
