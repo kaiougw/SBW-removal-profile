@@ -950,7 +950,7 @@ with colC:
         "",
         options=[("Thickness", "thk"), ("Flatness", "flat")],
         format_func=lambda x: x[0]
-    )[1]
+    )[1] 
     profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch") # (PRE | POST | REMOVAL)
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 
@@ -1104,14 +1104,14 @@ else:
 
         plot_key = "do_plot_REMOVAL"
 
-        c1, c2 = st.columns(2)
-        with c1:
+        col1, col2 = st.columns(2)
+        with col1:
             sel_pre = st.multiselect(
                 "PRE slots", pre_labels, default=None,
                 key="rem_pre_slots", on_change=reset_plot, args=(plot_key,)
             )
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
-        with c2:
+        with col2:
             sel_post = st.multiselect(
                 "POST slots", post_labels, default=None,
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,)
@@ -1179,14 +1179,14 @@ else:
                         st.session_state[view_key] = not st.session_state[view_key]
                         st.rerun()
 
-                    c1, c2 = st.columns(2)
-                    with c1:
+                    col1, col2 = st.columns(2)
+                    with col1:
                         if st.session_state[view_key]:
                             plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
                         else:
                             plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, mask, height=300)
 
-                    with c2:
+                    with col2:
                         if st.session_state[view_key]:
                             plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
@@ -1228,11 +1228,11 @@ else:
 
                     st.subheader(f"{graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
 
-                    c1, c2 = st.columns(2)
-                    with c1:
+                    col1, col2 = st.columns(2)
+                    with col1:
                         rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
                         plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, mask)
-                    with c2:
+                    with col2:
                         view_key = f"show3d_{pre_slot}_{post_slot}"
                         if view_key not in st.session_state:
                             st.session_state[view_key] = False
