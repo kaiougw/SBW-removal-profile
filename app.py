@@ -58,9 +58,9 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
 
     Input
     ---
-    x : np.ndarray
+    x: np.ndarray
         1D array of x-coordinates.
-    y : np.ndarray
+    y: np.ndarray
         1D array of y-coordinates.
 
     Ouput
@@ -411,7 +411,7 @@ def finite_max(arr: np.ndarray, default: float = 0.0) -> float: # This function 
 
 def build_SlotCache(wafer_dict) -> SlotCache: #***
     """
-    Take wafer_dict and builds SlotCache
+    Take wafer_dict and build SlotCache
 
     Input
     ---
@@ -995,7 +995,7 @@ if profile_mode in ("PRE", "POST"):
         values = [val for _, val in opts]
         plot_key = f"do_plot_{profile_mode}" 
         sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
-                            on_change=reset_plot, args=(plot_key,)) 
+                            on_change=reset_plot, args=(plot_key,))
         # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
         # arg=(plot_key,) passes `plot_key=f"do_plot_{profile_mode}"` as the argument to `reset_plot`.
         #>>> "When Slots are changed, run `reset_plot` function and set st.session_state[plot_key]=False."
