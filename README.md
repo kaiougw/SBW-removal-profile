@@ -93,7 +93,7 @@ Changing slot options resets session state, requiring the **Plot** button to be 
                 if avg_profiles:
 ```
 
-Then, the lines of code above checks if `st.session_state[plot_key]` is `True`. Plotting is activated only if slots have been selected and the **Plot** button has been clicked by the user. 
+Then, the lines of code above check if `st.session_state[plot_key]` is `True`. Plotting is activated only if slots have been selected and the **Plot** button has been clicked by the user. 
 
 ### `average_profile`
 
@@ -163,5 +163,5 @@ def build_SlotCache(wafer_dict) -> SlotCache:
 This code uses the polar-coordinate identity:
 
 $$
-(r, \theta)\equiv(|r|, \theta+\pi)\:when\:r<0 
+(r, \theta)\equiv(|r|, \theta+\pi) when r<0 
 $$
