@@ -4,7 +4,7 @@
 
 ## Common Tasks
 
-### A. View PRE or POST wafer profiles
+### View PRE or POST wafer profiles
 
 1. Upload a PRE or POST .sbw file.
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
@@ -13,7 +13,7 @@
 5. (Optional) Check **`Mask notch`** in the sidebar to mask notch and filter out outlier values.
 6. Click **Plot**.
 
-### B. View REMOVAL wafer profile
+### View REMOVAL wafer profile
 
 1. Upload **both** PRE and POST .sbw files.
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
@@ -22,7 +22,7 @@
 5. (Optional) Check **`Overlay line charts`** in the sidebar to show PRE/POST on top of REMOVAL line charts.
 6. Click **Plot**.
 
-### C. View average wafer profiles
+### View average wafer profiles
 
 1. Check **`Average Profile`**.
 2. In PRE/POST profile mode: plots the average radial profile for the selected profile mode.
@@ -99,18 +99,6 @@ Then, the lines of code above checks if `st.session_state[plot_key]` is `True`. 
 
 **Compute average radial profile by combining both +r and -r sides.**
 
-**Input**
-
-**Z_line: np.ndarray**
-
-**2D array, shape (n_lines, n_radii), where each row is a scan line along radius positions**
-
-**Output**
-
-**np.ndarray**
-
-**1D array of length n_radii containing the averaged profile across all lines and their mirrored halves**
-
 ```python
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
 	Z_line = np.asarray(Z_line, dtype=float) 
@@ -126,31 +114,6 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
 ### `Thkmatrix` & `Flatmatrix`
 
  **Build 2D thickness/flatness matrix with rows = Angle, columns = Radius**
-
-**Input**
-
-**wafer: dict
-        Wafer dictionary containing:
-        - "Radius": list of float
-        - "Angle": list of float
-        - "Profiles": list of 2D arrays, each with columns
-            [:,0] = Thickness values
-            [:,1] = Flatness values**
-
-**Output**
-
-**r: np.ndarray**
-
-**1D array of radii, shape (n_radius,)**
-
-**theta: np.ndarray**
-
-**1D array of angles, shape (n_theta,)**
-
-**Thk/Flat: np.ndarray**
-
-**2D array of thickness/flatness values, shape (n_theta, n_radius)
- Rows correspond to angles, columns correspond to radii**
 
 ```python
 def Thkmatrix(wafer):
@@ -171,38 +134,6 @@ def Thkmatrix(wafer):
 ### `build_SlotCache`
 
 **Take wafer_dict and build `SlotCache`.**
-
-**Input**
-
-**wafer_dict: dict**
-
-**Wafer data dictionary (from cleansbw) containing:
-        - 'Radius': list of float
-            Radial positions (mm).
-        - 'Angle': list of float
-            Angular positions (radians).
-        - 'Profiles': list of 2D arrays
-            Each profile is shape (n_radius, 2), column 0 = Thickness, column 1 = Flatness.**
-
-**Output**
-
-**SlotCache**
-
-**Dataclass containing precomputed grids:
-        - r: np.ndarray
-            Radii (1D).
-        - theta: np.ndarray
-            Angles (1D).
-        - Thk: np.ndarray, shape (n_theta, n_radius)
-            Thickness grid.
-        - Flat: np.ndarray, shape (n_theta, n_radius)
-            Flatness grid.
-        - Rmax: float
-            Maximum finite radius (used for wafer outline).
-        - X_mir, Y_mir: np.ndarray
-            Cartesian matrices after mirroring across wafer diameter.
-        - Thk_mir, Flat_mir: np.ndarray
-            Thickness/Flatness grids extended with mirrored halves to cover full 360°.**
 
 ```python
 def build_SlotCache(wafer_dict) -> SlotCache:
