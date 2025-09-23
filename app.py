@@ -1015,7 +1015,7 @@ if profile_mode in ("PRE", "POST"):
             if not sel_keys:
                 st.warning("Choose at least one slot.")
             else:
-                if avg_profiles:
+                if avg_profiles: # if Average Profile is selected
                     for slot in sel_keys:
                         if slot not in cache:
                             st.warning(f"No cache for slot {slot}")
@@ -1050,7 +1050,7 @@ if profile_mode in ("PRE", "POST"):
                             plot_3d(X, Y, Z_surf, zlabel, p_lo, p_hi, mask)
 
                         st.markdown("---")
-                else:
+                else: # if Average Profile is not selected
                     for slot in sel_keys:
                         if slot not in cache:
                             st.warning(f"No cache for slot {slot}")
@@ -1128,7 +1128,7 @@ else:
             if len(pre_keys) != len(post_keys) and n_pairs > 0:
                 st.info(f"Pairing first {n_pairs} slots in order.")
             
-            if avg_profiles and n_pairs > 0:
+            if avg_profiles and n_pairs > 0: # if Average Profile is selected
                 for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
                         st.warning("Selected slot missing in cache.")
@@ -1194,7 +1194,7 @@ else:
 
                     st.markdown("---")
 
-            if not avg_profiles:
+            if not avg_profiles: # if Average Profile is not selected
                 for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
                         st.warning("Selected slot missing in cache.")
