@@ -115,7 +115,7 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
 
 ### `Thkmatrix()` & `Flatmatrix()`
 
- **Build a 2D thickness/flatness matrix with rows = Angle and columns = Radius**
+ **Build a 2D thickness/flatness matrix with rows = Angle and columns = Radius.**
 
 ```python
 def Thkmatrix(wafer):
