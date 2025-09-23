@@ -99,7 +99,7 @@ Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting 
 
 ### `average_profile()`
 
-**Compute average radial profile by combining both +**$r$** and -**$r$** sides.**
+**Compute average radial profile by combining both +r and -r sides.**
 
 ```python
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
@@ -111,7 +111,7 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
       return np.nanmean(Z_full, axis=0)
 ```
 
-`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original ($+r$)  array and the mirrored ($-r$) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses error messages.)
+`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+r)  array and the mirrored (-r) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses error messages.)
 
 ### `Thkmatrix()` & `Flatmatrix()`
 
@@ -147,7 +147,7 @@ def Flatmatrix(wafer):
     return r, theta, Flat
 ```
 
-This function loops over every angle $i$ and retrieves the corresponding `Thk` or `Flat` data at every $r$.  
+This function loops over every angle i and retrieves the corresponding `Thk` or `Flat` data at every r.  
 
 ### `build_SlotCache()`
 
@@ -176,7 +176,7 @@ def build_SlotCache(wafer_dict) -> SlotCache:
     )
 ```
 
-`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original ($+r$) array and the mirrored ($-r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$-$360\degree$ matrix. This code uses the following polar-coordinate identity:
+`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+r) array and the mirrored (-r) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$-$360\degree$ matrix. This code uses the following polar-coordinate identity:
 
 $$
 (r, \theta)\equiv(|r|, \theta+\pi)\{ }when\{ }r<0 
