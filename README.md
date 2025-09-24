@@ -217,7 +217,7 @@ $$
 
 ### `masknotch()`
 
-**Mask notch (outliers) in the array using Median Absolute Deviation (MAD).**
+**Mask notch (outlier values) in the array using Median Absolute Deviation (MAD).**
 
 ```python
 def masknotch(Z: np.ndarray, k: float=4):
