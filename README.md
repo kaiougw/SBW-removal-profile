@@ -215,6 +215,37 @@ $$
 
 ## Plot Utilities
 
+### `robust_clip()`
+
+**Clip values based on `p_lo` (lowest percentile) and `p_hi` (highest percentile).**
+
+```python
+def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
+    Zf = Z[np.isfinite(Z)]
+    if Zf.size == 0:
+        return Z, 0.0, 1.0
+    vmin = float(np.nanpercentile(Zf, p_lo))
+    vmax = float(np.nanpercentile(Zf, p_hi))
+    if not np.isfinite(vmin): vmin = 0.0
+    if not np.isfinite(vmax): vmax = vmin + 1.0
+    if vmin >= vmax:
+        vmax = vmin + 1e-9
+    return np.clip(Z, vmin, vmax), vmin, vmax
+```
+
+The function limits the input array `Z` to values within the range (`vmin`, `vmax`). `vmin = float(np.nanpercentile(Zf, p_lo))` and `vmax = float(np.nanpercentile(Zf, p_hi))` computes the lowest percentile and the highest percentile of the data, respectively, from `p_lo` and `p_hi` set by the user through color clip sliders in the sidebar.
+
+```python
+with st.sidebar:
+    st.markdown("**Display controls**")
+    p_lo = st.slider("Color clip low (%)", 0.0, 5.0, 0.5, 0.5)
+    p_hi = st.slider("Color clip high (%)", 95.0, 100.0, 100.0, 1.0)
+    if p_hi <= p_lo:
+        p_hi = min(100.0, p_lo + 0.5)
+```
+
+By default, `p_lo` is set to 0.5 and `p_hi` is set to 100—only values below the 0.5th percentile is clipped.
+
 ### `masknotch()`
 
 **Mask notch (outlier values) in the array using Median Absolute Deviation (MAD).**
