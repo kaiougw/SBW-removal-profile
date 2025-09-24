@@ -119,7 +119,7 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
 
 ### `parsecleansbw()`
 
-**Parse (using `parsesbw()`) and clean (using `cleansbw()`) `.sbw` file uploaded by the user, and return in a cleaned dict format.**
+**Parse (using `parsesbw()`) and clean (using `cleansbw()`) the `.sbw` file uploaded by the user, and return it in a cleaned dict format.**
 
 ```python
 def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
