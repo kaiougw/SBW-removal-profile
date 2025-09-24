@@ -448,7 +448,7 @@ def build_SlotCache(wafer_dict) -> SlotCache: #***
     _, _, Flat = Flatmatrix(wafer_dict) # Flatness matrix
     Rmax = finite_max(r, 0.0)
     if theta.size and r.size:
-        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi)) # extends theta by mirroring it across wafer (theta + 180) and % 2pi ensures angles stay in [0,2pi]
+        theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi)) # extends theta by mirroring it across wafer (theta + 180) and % 2pi ensures angles stay in [0,2pi)
         # (r, theta) = (|r|, theta + pi) when r<0
         Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size else np.empty((0, 0)) # stacks original (+r) and mirrored (-r) arrays vertically; ::-1 reverses sequence
         Flat_full = np.vstack([Flat, Flat[:, ::-1]]) if Flat.size else np.empty((0, 0)) # stacks original (+r) and mirrored (-r) arrays vertically
