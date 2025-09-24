@@ -81,7 +81,7 @@ The function is used in `st.multiselect`, for example:
                             on_change=reset_plot, args=(plot_key,))
 ```
 
-Changing slot options resets session state, requiring the **Plot** button to be clicked again. `on_change=reset_plot` invokes `reset_plot()` function to be run whenever the widget's value (slots in this case) is changed. `arg=(plot_key,)` then passes `plot_key=f"do_plot_{profile_mode}"` as the argument to `reset_plot()`. As a result, when the widget’s value is changed, `st.session_state[plot_key]=False`. 
+Changing slot options resets session state, requiring the **Plot** button to be clicked again. `on_change=reset_plot` invokes `reset_plot()` to be run whenever the widget's value (slots in this case) is changed. `arg=(plot_key,)` then passes `plot_key=f"do_plot_{profile_mode}"` as the argument to `reset_plot()`. As a result, when the widget’s value is changed, `st.session_state[plot_key]=False`. 
 
 ```python
         if st.button("Plot", key=f"plot_btn_{profile_mode}"):
