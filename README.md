@@ -144,7 +144,7 @@ def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
 
 ### `Thkmatrix()` & `Flatmatrix()`
 
- **Build a 2D thickness/flatness matrix with rows = Angle and columns = Radius**
+ **Build a 2D thickness/flatness matrix with rows = Angle and columns = Radius.**
 
 ```python
 def Thkmatrix(wafer):
