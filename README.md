@@ -208,7 +208,7 @@ def build_SlotCache(wafer_dict) -> SlotCache:
 `theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+ $r$) array and the mirrored (- $r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$ - $360\degree$ matrix. This code uses the following polar-coordinate identity:
 
 $$
-(r, \theta)\equiv(|r|, \theta+\pi)\ when\ r<0 
+(r, \theta)\equiv(-r, \theta+\pi)
 $$
 
 ## Plot Utilities
