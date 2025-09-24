@@ -44,7 +44,8 @@ def reset_plot(flag_key: str):
 
 def sort_keys(d): # d = WaferData
     """
-    Sorts dictionary keys (slot IDs) as floats if possible, otherwise strings
+    Sorts dictionary keys (slot IDs) as floats if possible, otherwise strings.
+    Called inside `slot_options`
     """
     try:
         return sorted(d.keys(), key=float) # key=float converts each key into a float before sorting.
@@ -77,7 +78,7 @@ def finite_xy(x: np.ndarray, y: np.ndarray):
 
 def average_profile(Z_line: np.ndarray) -> np.ndarray:
     """
-    Compute average radial profile by combining both +r and -r sides
+    Compute average radial profile by combining both +r and -r sides.
 
     Input
     ---
@@ -99,7 +100,7 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
 # SBW File Parsing and Cleaning
 class sbwinfo(object):
     """
-    Container for parsed SBW data
+    Container for parsed SBW data.
     """
     MachineName = ''
     ProductNo = ''
@@ -301,10 +302,10 @@ def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
         except Exception:
             pass
 
-# Wafer Grid & Slot Caching
+# Wafer Matrix & Slot Caching
 def Thkmatrix(wafer): 
     """
-    Build 2D thickness matrix with rows = Angle, columns = Radius
+    Build 2D thickness matrix with rows = Angle, columns = Radius.
 
     Input
     ---
@@ -334,14 +335,14 @@ def Thkmatrix(wafer):
     for i in range(nt): # loop over each angle i and get corresponding Thk data at every r
         line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float) # if there is a profile available `(i < len(profiles))`, convert it to a float array.
         if line.ndim == 2 and line.shape[1] > 0: # check if line is a 2D array with at least one column.
-            Thk[i, :min(nr, line.shape[0])] = line[:nr, 0] # fill row i with Thk.
+            Thk[i, :min(nr, line.shape[0])] = line[:nr, 0] # takes the first nr rows in the column indexed 0 (first column)
         else:
             Thk[i, :min(nr, line.size)] = line.ravel()[:nr]
     return r, theta, Thk
 
 def Flatmatrix(wafer):
     """
-    Build 2D flatness matrix with rows = Angle, columns = Radius
+    Build 2D flatness matrix with rows = Angle, columns = Radius.
 
     Input
     ---
@@ -371,7 +372,7 @@ def Flatmatrix(wafer):
     for i in range(nt): # loop over each angle i and get corresponding Flat data at every r
         line = np.asarray(profiles[i], dtype=float) if i < len(profiles) else np.array([], dtype=float)
         if line.ndim == 2 and line.shape[1] > 1:
-            Flat[i, :min(nr, line.shape[0])] = line[:nr, 1]
+            Flat[i, :min(nr, line.shape[0])] = line[:nr, 1] # takes the first nr rows in the column indexed 1 (second column)
         else:
             Flat[i, :min(nr, line.size)] = line.ravel()[:nr]
     return r, theta, Flat
@@ -411,7 +412,7 @@ def finite_max(arr: np.ndarray, default: float = 0.0) -> float: # This function 
 
 def build_SlotCache(wafer_dict) -> SlotCache: #***
     """
-    Take wafer_dict and build SlotCache
+    Take wafer_dict and build SlotCache.
 
     Input
     ---
@@ -520,7 +521,7 @@ def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data 
 
 def graph_label(graph: str, prefix: str = "") -> str:
     """
-    Graph title and label
+    Graph title and label.
 
     Input
     ---
@@ -548,8 +549,7 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
     Z: np.ndarray
         Input array of values (e.g. thickness, flatness, or removal data).
     p_lo, p_hi: float
-        Lowest percentile and highest percentile values        
-
+        Lowest percentile and highest percentile values.
     Output
     ---
     tuple
@@ -576,6 +576,7 @@ def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     """
     Mask notch (outliers) in array using Median Absolute Deviation (MAD).
     Any value further than k*MAD from median is replaced with NaN.
+    Called inside `plot_3d` and `plot_2d`.
 
     Input
     ---
