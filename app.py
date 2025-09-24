@@ -605,17 +605,32 @@ def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     return Zm
 
 # Image Overlay (for Line Scanning Direction)
-def overlay_images(base_url: str, overlay_url: str, overlay_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
+def overlay_images(waferimg_url: str, arrowimg_url: str, arrowimg_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
 # Overlay arrow on wafer image and rotate by rotation_deg
-    base = Image.open(BytesIO(requests.get(base_url).content)).convert("RGBA") # waferimg
-    overlay = Image.open(BytesIO(requests.get(overlay_url).content)).convert("RGBA") # arrowimg
-    overlay = overlay.resize((overlay_size, overlay_size*3), Image.LANCZOS)
-    overlay = overlay.rotate(rotation_deg, expand=True) # rotate arrow by rotation_deg set by user through select_slider.
-    w, h = base.size
-    pos = ((w - overlay.width) // 2, (h - overlay.height) // 2) # arrowimg centered inside waferimg.
-    combined = base.copy()
-    combined.paste(overlay, pos, overlay)
+    waferimg = Image.open(BytesIO(requests.get(waferimg_url).content)).convert("RGBA") # waferimg
+    arrowimg = Image.open(BytesIO(requests.get(arrowimg_url).content)).convert("RGBA") # arrowimg
+    arrowimg = arrowimg.resize((arrowimg_size, arrowimg_size*3), Image.LANCZOS)
+    arrowimg = arrowimg.rotate(rotation_deg, expand=True) # rotate arrow by rotation_deg set by user through select_slider.
+    w, h = waferimg.size
+    pos = ((w - arrowimg.width) // 2, (h - arrowimg.height) // 2) # arrowimg centered inside waferimg.
+    combined = waferimg.copy()
+    combined.paste(arrowimg, pos, arrowimg)
     return combined
+
+# def overlay_images(waferimg_path: str, arrowimg_path: str, arrowimg_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
+#     waferimg = Image.open(waferimg_path).convert("RGBA")  # wafer image
+#     arrowimg = Image.open(arrowimg_path).convert("RGBA")  # arrow image
+
+#     # Resize and rotate arrowimg
+#     arrowimg = arrowimg.resize((arrowimg_size, arrowimg_size * 3), Image.LANCZOS)
+#     arrowimg = arrowimg.rotate(rotation_deg, expand=True)
+
+#     # Center arrowimg on waferimg
+#     w, h = waferimg.size
+#     pos = ((w - arrowimg.width) // 2, (h - arrowimg.height) // 2)
+#     combined = waferimg.copy()
+#     combined.paste(arrowimg, pos, arrowimg)
+#     return combined
 
 
 # Plotting Functions
@@ -808,9 +823,17 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             combined = overlay_images(
                 "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
                 "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arrowimg.png",
-                overlay_size=225,
+                arrowimg_size=225,
                 rotation_deg=rotation_deg
             )
+
+            # combined = overlay_images(
+            #     r"D:\source\ntcpdr\img\waferimg.jpg",
+            #     r"D:\source\ntcpdr\img\arrowimg.png",
+            #     arrowimg_size=225,
+            #     rotation_deg=rotation_deg
+            # )
+
             st.image(combined, width=200)
             st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
     else:
