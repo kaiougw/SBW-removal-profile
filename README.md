@@ -17,7 +17,7 @@
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
 3. Select **`REMOVAL`** in the segmented control.
 4. Select PRE slots and POST slots. If counts differ, the slots are paired in order.
-5. (Optional) Check **`Overlay line charts`** in the sidebar to show PRE/POST on top of REMOVAL line charts.
+5. (Optional) Check **`Overlay line charts`** in the sidebar to show PRE/POST on the top of REMOVAL line charts.
 6. Click **Plot**.
 
 ### View average wafer profiles
