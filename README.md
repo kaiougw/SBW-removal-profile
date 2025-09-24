@@ -205,7 +205,7 @@ def build_SlotCache(wafer_dict) -> SlotCache:
     )
 ```
 
-This code uses the following polar-coordinate identity:
+This function uses the following polar-coordinate identity:
 
 $$
 (r, \theta)\equiv(-r, \theta+\pi)
