@@ -1,7 +1,5 @@
 # User Manual
 
-**App type**: Streamlit
-
 ## Common Tasks
 
 ### View PRE or POST wafer profiles
