@@ -140,7 +140,7 @@ def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
 
 - `parsesbw()` parses the raw `.sbw` file (using a file path) and returns an `sbwinfo` object.
 - `cleansbw()` takes an `sbwinfo` object and converts it into a clean dictionary.
-- `parsecleansbw()` bridges these two functions: it takes the raw file bytes uploaded by the user, writes them into a temporary `.sbw` file on disk, so that it can use `parsesbw()` to parse that file and use `cleansbw()` to convert it into a clean dictionary, which is the final output of this function. In essence, this function returns the output of `cleansbw()`, but its input is the uploaded file bytes instead of a file path.
+- `parsecleansbw()` bridges these two functions: it takes the raw file bytes uploaded by the user, writes them into a temporary `.sbw` file on disk, so that it can use `parsesbw()` to parse that file and use `cleansbw()` to convert it into a clean dictionary, which is the final output of this function. In essence, this function returns the output of `cleansbw()`, and its input is the uploaded file bytes instead of a file path.
 
 ## Wafer Matrix & Slot Caching
 
