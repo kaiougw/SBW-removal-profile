@@ -37,7 +37,7 @@
 
 ### Sidebar — Display controls
 
-- `Color clip low (%)`: slide to set the lowest percentile used for color range to prevent notch (outlier values) from skewing colors (default 0.5).
+- `Color clip low (%)`: slide to set the lowest percentile used for color range to reduce the effect of a notch (outlier values) skewing colors in 2D/3D plots (default 0.5).
 - `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
 - `Mask notch`: replaces notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent notch from skewing colors.
 - (**`REMOVAL`** only) `Overlay line charts`: overlays PRE/POST lines on removal line plots.
@@ -217,7 +217,7 @@ $$
 
 ### `robust_clip()`
 
-**Clip values based on `p_lo` (lowest percentile) and `p_hi` (highest percentile).**
+**Clip values based on `p_lo` (lowest percentile) and `p_hi` (highest percentile) to reduce the effect of a notch (outlier values) skewing colors.**
 
 ```python
 def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
