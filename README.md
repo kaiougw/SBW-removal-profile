@@ -233,7 +233,7 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
     return np.clip(Z, vmin, vmax), vmin, vmax
 ```
 
-The function limits the input array `Z` to values within the range (`vmin`, `vmax`). `vmin = float(np.nanpercentile(Zf, p_lo))` and `vmax = float(np.nanpercentile(Zf, p_hi))` computes the lowest percentile and the highest percentile of the data, respectively, from `p_lo` and `p_hi`, both of which are set by the user through color clip sliders in the sidebar.
+The function limits the input array `Z` to values within the range (`vmin`, `vmax`). `vmin = float(np.nanpercentile(Zf, p_lo))` and `vmax = float(np.nanpercentile(Zf, p_hi))` computes the lowest percentile and the highest percentile of the data, respectively, from `p_lo` and `p_hi`, both of which are set by the user through color clip sliders (`Color clip low (%)` / `Color clip high (%)`)  in the sidebar.
 
 ```python
 with st.sidebar:
