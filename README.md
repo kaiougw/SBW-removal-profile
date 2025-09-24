@@ -244,7 +244,7 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
 ```
 
-By default, `p_lo` is set to 0.5 and `p_hi` is set to 100—only values below the 0.5th percentile is clipped.
+By default, `p_lo` is set to 0.5 and `p_hi` is set to 100—only values below the 0.5th percentile are clipped.
 
 ### `masknotch()`
 
