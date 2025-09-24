@@ -176,7 +176,7 @@ def Flatmatrix(wafer):
     return r, theta, Flat
 ```
 
-This function loops over every angle $i$ and retrieves the corresponding `Thk` (`Flat`) data at every $r$.  `Thkmatrix()` (`Flaatmatrix()`) takes `Thk` (`Flat`) data from the first (second) column of `line`, a 2D array representing one scan line (profile).  
+This function loops over every angle $i$ and retrieves the corresponding `Thk` (`Flat`) data at every $r$.  `Thkmatrix()` (`Flaatmatrix()`) takes `Thk` (`Flat`) data from the first (second) column of `line`, a 2D array representing one scan line.  
 
 ### `build_SlotCache()`
 
