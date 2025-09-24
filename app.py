@@ -462,8 +462,7 @@ def build_SlotCache(wafer_dict) -> SlotCache: #***
         Y_mir = np.empty((0, 0))
     return SlotCache(
         r=r, theta=theta, Thk=Thk, Flat=Flat,
-        Rmax=Rmax, X_mir=X_mir, Y_mir=Y_mir, Thk_mir=Thk_full, Flat_mir=Flat_full
-    )
+        Rmax=Rmax, X_mir=X_mir, Y_mir=Y_mir, Thk_mir=Thk_full, Flat_mir=Flat_full)
 
 @st.cache_data(show_spinner=False) # Caches results of this function; don't rerun this function for the same input
 def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
