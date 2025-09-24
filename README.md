@@ -70,7 +70,7 @@ def reset_plot(flag_key: str):
 	st.session_state[flag_key] = False 
 ```
 
-Streamlit reruns when the user interacts with the application (e.g., selecting new slots). `st.session_state[flag_key] = False` ensures that plotting is activated by the **Plot** button.
+Streamlit reruns when the user interacts with the application (e.g., selecting new slots). `st.session_state[flag_key] = False` ensures that plotting is initiated by the **Plot** button.
 
 The function is used in `st.multiselect`, for example: 
 
@@ -95,7 +95,7 @@ Changing slot options resets session state, requiring the **Plot** button to be 
                 if avg_profiles:
 ```
 
-Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting is activated only when the user has selected slots and clicked the **Plot** button.
+Then, the code above checks if `st.session_state[plot_key]` is `True`. Plotting is initiated only when the user has selected slots and clicked the **Plot** button.
 
 ### `average_profile()`
 
