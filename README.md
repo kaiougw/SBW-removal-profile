@@ -113,13 +113,13 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
       return np.nanmean(Z_full, axis=0)
 ```
 
-`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+ $r$)  array and the mirrored (- $r$) array vertically. Then, the function returns the average of the stack. (`np.errstate(all='ignore')` suppresses warning messages.)
+`Z_full = np.vstack([Z_line, Z_line[:, ::-1]])` stacks the original (+ $r$)  array and the mirrored (- $r$) array vertically (`::-1` reverses the sequence). Then, the function returns the average of the stacked arrays. (`np.errstate(all='ignore')` suppresses warning messages.)
 
 ## SBW File Parsing and Cleaning
 
 ### `parsecleansbw()`
 
-**Parse (using `parsesbw()`) and clean (using `cleansbw()`) `.sbw` file uploaded by the user, and return cleaned dict format.**
+**Parse (using `parsesbw()`) and clean (using `cleansbw()`) `.sbw` file uploaded by the user, and return in a cleaned dict format.**
 
 ```python
 def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
@@ -178,7 +178,7 @@ def Flatmatrix(wafer):
     return r, theta, Flat
 ```
 
-This function loops over every angle $i$ and retrieves the corresponding `Thk` or `Flat` data at every $r$.  
+This function loops over every angle $i$ and retrieves the corresponding `Thk` (`Flat`) data at every $r$.  `Thkmatrix()` (`Flaatmatrix()`) takes `Thk` (`Flat`) data from the first (second) column of `line`, a 2D array representing one scan line (profile).  
 
 ### `build_SlotCache()`
 
@@ -207,10 +207,10 @@ def build_SlotCache(wafer_dict) -> SlotCache:
     )
 ```
 
-`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+ $r$) array and the mirrored (- $r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$ - $360\degree$ matrix. This code uses the following polar-coordinate identity: *change \; to \{ }
+`theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))` extends `theta` by mirroring it across the wafer `theta + np.pi` while `% (2*np.pi)` ensures that angles stay in the range $[0, 2\pi)$. Then, `Thk_full = np.vstack([Thk, Thk[:, ::-1]]) if Thk.size` stacks the original (+ $r$) array and the mirrored (- $r$) array vertically (`::-1` reverses the sequence). This way, the mirrored rows are stacked under the original rows to form a full $0$ - $360\degree$ matrix. This code uses the following polar-coordinate identity:
 
 $$
-(r, \theta)\equiv(|r|, \theta+\pi)\{ } when\{ } r<0 
+(r, \theta)\equiv(|r|, \theta+\pi)\ when\ r<0 
 $$
 
 ## Plot Utilities
