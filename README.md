@@ -40,7 +40,7 @@
 - `Color clip low (%)`: slide to set the lowest percentile used for color range to reduce the effect of the notch (outlier values) skewing colors in 2D/3D plots (default 0.5).
 - `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
 - `Mask notch`: replaces the notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent the notch from skewing colors.
-- (**`REMOVAL`** only) `Overlay line charts`: overlays PRE/POST lines on removal line plots.
+- (**`REMOVAL`** only) `Overlay line charts`: overlay PRE/POST lines on removal line plots.
 - `Documentation`: click once to open the user documentation containing the user manual and code explanation. Click again to close it.
 
 ### Angle selection
