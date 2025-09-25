@@ -1296,9 +1296,24 @@ else:
 
                     st.markdown("---")
 
+# with st.sidebar:
+#     st.markdown("---")
+#     st.link_button("Documentation", "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md")
+
+import requests
+
+if "open_readme" not in st.session_state:
+    st.session_state.open_readme = False
+
 with st.sidebar:
     st.markdown("---")
-    st.link_button("Documentation", "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md")
+    if st.button("Documentation"):
+        st.session_state.open_readme = not st.session_state.open_readme
+
+if st.session_state.open_readme:
+    readme = "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md"
+    readme_text = requests.get(readme).text
+    st.markdown(readme_text, unsafe_allow_html=True)
 
 # from pathlib import Path
 
