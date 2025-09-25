@@ -39,7 +39,7 @@
 
 - `Color clip low (%)`: slide to set the lowest percentile used for color range to reduce the effect of the notch (outlier values) skewing colors in 2D/3D plots (default 0.5).
 - `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
-- `Mask notch`: replaces the notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent the notch from skewing colors.
+- `Mask notch`: replace the notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent the notch from skewing colors.
 - (**`REMOVAL`** only) `Overlay line charts`: overlay PRE/POST lines on removal line plots.
 - `Documentation`: click once to open the user documentation containing the user manual and code explanation. Click again to close it.
 
@@ -51,7 +51,7 @@ The angle and direction at which the wafer has been line-scanned is indicated by
 
 ### Controls and interactions
 
-- **Hover**: shows x/y/z values.
+- **Hover**: view x/y/z values.
 - **Pan/Zoom**: use the mouse to drag/scroll in plots.
 - **Turnable rotation**: use the mouse to drag and turn the surfaces.
 - **Reset camera to last save**: reset 2D/3D plots to the original view.
