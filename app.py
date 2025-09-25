@@ -1,4 +1,3 @@
-# app.py
 from __future__ import annotations
 import os
 from dataclasses import dataclass
@@ -12,7 +11,6 @@ from plotly.subplots import make_subplots
 from PIL import Image
 import requests
 from io import BytesIO
-
 
 # Utility Functions
 def floatlist(a) -> list:
@@ -834,7 +832,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             #     rotation_deg=rotation_deg
             # )
 
-            st.image(combined, width=200)
+            st.image(combined, width=200) # adjust wafer size
             st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
     else:
         st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
@@ -1297,3 +1295,22 @@ else:
                         )
 
                     st.markdown("---")
+
+with st.sidebar:
+    st.markdown("---")
+    st.link_button("Documentation", "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md")
+
+# from pathlib import Path
+
+# if "open_readme" not in st.session_state:
+#     st.session_state.open_readme = False
+
+# with st.sidebar:
+#     st.markdown("---")
+#     if st.button("Documentation"):
+#         st.session_state.open_readme = not st.session_state.open_readme
+
+# if st.session_state.open_readme:
+#     readme_path = Path(r"D:\source\ntcpdr\img\sbwremovalprofile_README.md")
+#     readme_text = readme_path.read_text(encoding="utf-8")
+#     st.markdown(readme_text, unsafe_allow_html=True)
