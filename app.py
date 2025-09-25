@@ -607,8 +607,8 @@ def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4
 # Image Overlay (for Line Scanning Direction)
 def overlay_images(waferimg_url: str, arrowimg_url: str, arrowimg_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
 # Overlay arrow on wafer image and rotate by rotation_deg
-    waferimg = Image.open(BytesIO(requests.get(waferimg_url).content)).convert("RGBA") # waferimg
-    arrowimg = Image.open(BytesIO(requests.get(arrowimg_url).content)).convert("RGBA") # arrowimg
+    waferimg = Image.open(BytesIO(requests.get(waferimg_url).content)).convert("RGBA")
+    arrowimg = Image.open(BytesIO(requests.get(arrowimg_url).content)).convert("RGBA")
     arrowimg = arrowimg.resize((arrowimg_size, arrowimg_size*3), Image.LANCZOS)
     arrowimg = arrowimg.rotate(rotation_deg, expand=True) # rotate arrow by rotation_deg set by user through select_slider.
     w, h = waferimg.size
@@ -618,8 +618,8 @@ def overlay_images(waferimg_url: str, arrowimg_url: str, arrowimg_size: int = 80
     return combined
 
 # def overlay_images(waferimg_path: str, arrowimg_path: str, arrowimg_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
-#     waferimg = Image.open(waferimg_path).convert("RGBA")  # wafer image
-#     arrowimg = Image.open(arrowimg_path).convert("RGBA")  # arrow image
+#     waferimg = Image.open(waferimg_path).convert("RGBA")
+#     arrowimg = Image.open(arrowimg_path).convert("RGBA")
 
 #     # Resize and rotate arrowimg
 #     arrowimg = arrowimg.resize((arrowimg_size, arrowimg_size * 3), Image.LANCZOS)
@@ -970,11 +970,11 @@ with colB:
     post_file = st.file_uploader("Upload POST .sbw", type=["sbw"], key="post")
 with colC:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
-        "",
-        options=[("Thickness", "thk"), ("Flatness", "flat")],
+        "Graph Mode",
+        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
         format_func=lambda x: x[0]
     )[1] 
-    profile_mode = st.segmented_control("",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch") # (PRE | POST | REMOVAL)
+    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 
 # Sidebar options only when REMOVAL is selected
@@ -1110,7 +1110,7 @@ if profile_mode in ("PRE", "POST"):
                             rotation_deg = float(ang_str.replace("°", ""))
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
-
+                                # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
