@@ -41,7 +41,7 @@
 - `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
 - `Mask notch`: replaces notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent notch from skewing colors.
 - (**`REMOVAL`** only) `Overlay line charts`: overlays PRE/POST lines on removal line plots.
-- `Documentation`: click once to open the user documentation containing a user manual and code explanation. Click again to close it.
+- `Documentation`: click once to open the user documentation containing the user manual and code explanation. Click again to close it.
 
 ### Angle selection
 
