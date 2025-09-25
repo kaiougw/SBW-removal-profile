@@ -54,6 +54,8 @@ The angle and direction at which the wafer has been line-scanned is indicated by
 - **Hover**: shows x/y/z values.
 - **Pan/Zoom**: use mouse to drag/scroll in plots.
 - **Turnable rotation**: use mouse to drag and turn the surfaces.
+- **Reset camera to last save**: resets the 2D/3D plot to the original view.
+- **Reset axes**: resets line charts to the original view.
 - (**`REMOVAL`** only) **▶️** / **◀️ button**: to switch between 2D and 3D plots for PRE and POST.
 
 ---
