@@ -16,15 +16,15 @@
 1. Upload **both** PRE and POST `.sbw` files.
 2. Select **`Thickness`** or **`Flatness`** from the dropdown menu.
 3. Select **`REMOVAL`** in the segmented control.
-4. Select PRE slots and POST slots. If counts differ, the slots are paired in order.
+4. Select one or more **PRE slots** and **POST slots**. If counts differ, the slots are paired in order.
 5. (Optional) Check **`Overlay line charts`** in the sidebar to show PRE/POST on top of REMOVAL line charts.
 6. Click **Plot**.
 
 ### View average wafer profiles
 
 1. Check **`Average Profile`**.
-2. In PRE/POST profile mode: plots the average radial profile for the selected profile mode.
-3. In REMOVAL profile mode: plots the average removal profile.
+2. PRE/POST profile mode: plot the average radial profile for the selected profile mode.
+3. REMOVAL profile mode: plot the average removal profile.
 
 ## User Interface
 
@@ -37,9 +37,9 @@
 
 ### Sidebar — Display controls
 
-- `Color clip low (%)`: slide to set the lowest percentile used for color range to reduce the effect of a notch (outlier values) skewing colors in 2D/3D plots (default 0.5).
+- `Color clip low (%)`: slide to set the lowest percentile used for color range to reduce the effect of the notch (outlier values) skewing colors in 2D/3D plots (default 0.5).
 - `Color clip high (%)`: slide to set the highest percentile used for color range (default 100).
-- `Mask notch`: replaces notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent notch from skewing colors.
+- `Mask notch`: replaces the notch (outlier values) (beyond $k\times MAD$, default $k$ = 4) with NaN to prevent the notch from skewing colors.
 - (**`REMOVAL`** only) `Overlay line charts`: overlays PRE/POST lines on removal line plots.
 - `Documentation`: click once to open the user documentation containing the user manual and code explanation. Click again to close it.
 
@@ -52,11 +52,11 @@ The angle and direction at which the wafer has been line-scanned is indicated by
 ### Controls and interactions
 
 - **Hover**: shows x/y/z values.
-- **Pan/Zoom**: use mouse to drag/scroll in plots.
-- **Turnable rotation**: use mouse to drag and turn the surfaces.
-- **Reset camera to last save**: resets 2D/3D plots to the original view.
-- **Reset axes**: resets line charts to the original view.
-- (**`REMOVAL`** only) **▶️** / **◀️ button**: to switch between 2D and 3D plots for PRE and POST.
+- **Pan/Zoom**: use the mouse to drag/scroll in plots.
+- **Turnable rotation**: use the mouse to drag and turn the surfaces.
+- **Reset camera to last save**: reset 2D/3D plots to the original view.
+- **Reset axes**: reset line charts to the original view.
+- (**`REMOVAL`** only) **▶️** / **◀️ button**: switch between 2D and 3D plots of PRE and POST profiles.
 
 ---
 
