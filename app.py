@@ -769,6 +769,31 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     else: # else both +r and -r are charted
         x, y = finite_xy(-x_full, y_full) # -x_full flips line chart horizontally (like Kobelco software)
     fig = go.Figure()
+
+    show_y2 = (overlay_pre is not None) or (overlay_post is not None)
+    match_y2 = False
+    if show_y2:
+        rem_max = np.nanmax(np.abs(y[np.isfinite(y)])) if np.isfinite(y).any() else 0.0
+        over_vals = []
+        if overlay_pre is not None:
+            yp = np.asarray(overlay_pre, dtype=float)
+            if positive_only and yp.size == y_full.size:
+                yp = yp[m]
+            over_vals.append(yp)
+        if overlay_post is not None:
+            yo = np.asarray(overlay_post, dtype=float)
+            if positive_only and yo.size == y_full.size:
+                yo = yo[m]
+            over_vals.append(yo)
+        if over_vals:
+            ov = np.concatenate([np.asarray(v, dtype=float).ravel() for v in over_vals])
+            ov = ov[np.isfinite(ov)]
+            ov_max = np.nanmax(np.abs(ov)) if ov.size else 0.0
+        else:
+            ov_max = 0.0
+        ratio = (ov_max / rem_max) if rem_max > 0 else np.inf
+        match_y2 = (ratio <= 5.0)
+    
     # overlay PRE
     if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
         y_pre = np.asarray(overlay_pre, dtype=float)
@@ -780,7 +805,8 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         if y_pre.size:
             fig.add_trace(go.Scatter(
                 x=x_pre, y=y_pre, mode="lines",
-                name="PRE", line=dict(width=1.0, color="lightgray")
+                name="PRE", line=dict(width=1.0, color="gray"),
+                yaxis="y2" if show_y2 else "y"
             ))
     # overlay POST
     if overlay_post is not None: # if "Overlay line charts" checkbox is checked
@@ -793,15 +819,18 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         if y_post.size:
             fig.add_trace(go.Scatter(
                 x=x_post, y=y_post, mode="lines",
-                name="POST", line=dict(width=1.0, color="lightgray")
+                name="POST", line=dict(width=1.0, color="gray"),
+                yaxis="y2" if show_y2 else "y"
             ))
     # main line
     if y.size:
         fig.add_trace(go.Scatter(
             x=x, y=y, mode="lines",
             line=dict(color="red"),
-            name="Removal"
+            name="Removal",
+            yaxis="y"
         ))
+
     fig.update_layout(
         margin=dict(l=30, r=30, t=30, b=30), # adjust margins
         xaxis_title="Radius (mm)",
@@ -813,6 +842,13 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
         yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False)
     )
+
+    if show_y2:
+        y2 = dict(overlaying="y", side="right", showgrid=False, title=f"{'Flatness' if match_y2 else 'Thickness'} (µm)")
+        if match_y2:
+            y2["matches"] = "y"
+        fig.update_layout(yaxis2=y2)
+
     if waferimg:
         col_plot, col_img = st.columns([12, 1])
         with col_plot:
@@ -869,27 +905,27 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     count = min(n, nrows*ncols) # ensures no more plots than scan lines
     theta = np.asarray(theta, dtype=float)
     angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
-    has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
-    has_post = overlay_post is not None and np.size(overlay_post) != 0
+    # has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
+    # has_post = overlay_post is not None and np.size(overlay_post) != 0
     for i in range(count):
         row, col = i // ncols + 1, i % ncols + 1
         y = Z_line[i, :]
         x_i, y_i = finite_xy(-r, y) # -r flips line charts horizontally (like Kobelco software)
         ang = angs[i] if i < angs.size else np.nan
-        if has_pre:
-            y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
-            x_pre, y_pre = finite_xy(-r, y_pre) # -r flips line charts horizontally (like Kobelco software)
-            if y_pre.size:
-                fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
-                                         line=dict(width=1.0, color="lightgray"),
-                                         name="PRE"), row=row, col=col)
-        if has_post:
-            y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
-            x_post, y_post = finite_xy(-r, y_post) # -r flips line charts horizontally (like Kobelco software)
-            if y_post.size:
-                fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
-                                         line=dict(width=1.0, color="lightgray"),
-                                         name="POST"), row=row, col=col)
+        # if has_pre:
+        #     y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
+        #     x_pre, y_pre = finite_xy(-r, y_pre) # -r flips line charts horizontally (like Kobelco software)
+        #     if y_pre.size:
+        #         fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
+        #                                  line=dict(width=1.0, color="gray"),
+        #                                  name="PRE"), row=row, col=col)
+        # if has_post:
+        #     y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
+        #     x_post, y_post = finite_xy(-r, y_post) # -r flips line charts horizontally (like Kobelco software)
+        #     if y_post.size:
+        #         fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
+        #                                  line=dict(width=1.0, color="gray"),
+        #                                  name="POST"), row=row, col=col)
         fig.add_trace(go.Scatter(x=x_i, y=y_i, mode="lines",
                                  line=dict(width=1.2, color="red"),
                                  showlegend=False,
