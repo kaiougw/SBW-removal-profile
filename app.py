@@ -770,29 +770,29 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         x, y = finite_xy(-x_full, y_full) # -x_full flips line chart horizontally (like Kobelco software)
     fig = go.Figure()
 
-    show_y2 = (overlay_pre is not None) or (overlay_post is not None)
-    match_y2 = False
+    show_y2 = (overlay_pre is not None) or (overlay_post is not None) # if overlay is selected, show secondary y-axis
+    match_y2 = False # by default secondary y-axis does not match the primary y-axis
     if show_y2:
-        rem_max = np.nanmax(np.abs(y[np.isfinite(y)])) if np.isfinite(y).any() else 0.0
-        over_vals = []
+        rem_max = np.nanmax(np.abs(y[np.isfinite(y)])) if np.isfinite(y).any() else 0.0 # find largest Removal value
+        overlay_values = []
         if overlay_pre is not None:
             yp = np.asarray(overlay_pre, dtype=float)
             if positive_only and yp.size == y_full.size:
                 yp = yp[m]
-            over_vals.append(yp)
+            overlay_values.append(yp)
         if overlay_post is not None:
             yo = np.asarray(overlay_post, dtype=float)
             if positive_only and yo.size == y_full.size:
                 yo = yo[m]
-            over_vals.append(yo)
-        if over_vals:
-            ov = np.concatenate([np.asarray(v, dtype=float).ravel() for v in over_vals])
+            overlay_values.append(yo)
+        if overlay_values:
+            ov = np.concatenate([np.asarray(v, dtype=float).ravel() for v in overlay_values])
             ov = ov[np.isfinite(ov)]
-            ov_max = np.nanmax(np.abs(ov)) if ov.size else 0.0
+            ov_max = np.nanmax(np.abs(ov)) if ov.size else 0.0 # find largest overlay value
         else:
             ov_max = 0.0
         ratio = (ov_max / rem_max) if rem_max > 0 else np.inf
-        match_y2 = (ratio <= 5.0)
+        match_y2 = (ratio <= 5.0) # if the overlay values are within 5x of removal values, then secondary y-axis matches primary y-axis
     
     # overlay PRE
     if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
