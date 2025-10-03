@@ -1063,6 +1063,11 @@ if profile_mode in ("PRE", "POST"):
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
         if st.button("Plot", key=f"plot_btn_{profile_mode}"):
             st.session_state[plot_key] = True # Plot button as the trigger
+        
+        summary = data.get("SummaryReport", [])
+        if summary:
+            df_summary = pd.DataFrame(summary)
+            st.dataframe(df_summary, use_container_width=True, hide_index=True)
 
         prev_key = f"prev_avg_{profile_mode}"
         if prev_key not in st.session_state:
@@ -1148,13 +1153,8 @@ if profile_mode in ("PRE", "POST"):
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
-        
-        summary = data.get("SummaryReport", [])
-        if summary:
-            df_summary = pd.DataFrame(summary)
-            st.dataframe(df_summary, use_container_width=True, hide_index=True)
 
-        st.markdown("---")
+                        st.markdown("---")
 
 # profile_mode == REMOVAL:
 else:
