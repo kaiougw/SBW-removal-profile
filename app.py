@@ -1052,12 +1052,8 @@ if profile_mode in ("PRE", "POST"):
     else:
         summary = data.get("SummaryReport", [])
         if summary:
-            df_summary = pd.DataFrame(summary)
-            # normalize column names and drop any variant of "No"
-            df_summary.columns = [str(c).strip() for c in df_summary.columns]
-            to_drop = [c for c in df_summary.columns if c.strip().lower() == "no"]
-            df_summary = df_summary.drop(columns=to_drop, errors="ignore")
-            st.dataframe(df_summary, use_container_width=True)
+            df_summary = pd.DataFrame(summary).drop(columns=["No"])
+            st.dataframe(df_summary, use_container_width=True), hide_index=True
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
