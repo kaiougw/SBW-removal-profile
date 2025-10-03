@@ -161,6 +161,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                         for j in range(1, len(rptcol)):  # skip "No" at index 0
                             _row[rptcol[j]] = tmpstr[j]
                         sbw.SummaryReport.append(_row)
+                        break
             elif tmpline[0] == '[MeasureData.PointsDataList]':
                 sbw.WaferData.clear()
                 waferno=tmpline[1]
@@ -732,6 +733,7 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, m
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
+
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
                    nrows=2, ncols=4, height: int = 600,
                    overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
@@ -947,19 +949,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
     else:
         st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-
-def summary_dataframe(data: Dict[str, Any]) -> Optional[pd.DataFrame]:
-    """
-    Turn the parsed SummaryReport into a DataFrame.
-    """
-    sr = (data or {}).get('SummaryReport') or []
-    if not sr:
-        return None
-    df = pd.DataFrame(sr)
-    for c in df.columns: # make numbers numeric; leave non-numeric as-is
-        df[c] = pd.to_numeric(df[c], errors='ignore')
-    return df
-
+        
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
@@ -1060,8 +1050,9 @@ if profile_mode in ("PRE", "POST"):
     if not data or not cache:
         st.info(f"Please upload a {profile_mode} file.")
     else:
-        df_summary = summary_dataframe(data)
-        if df_summary is not None:
+        summary = data.get("SummaryReport", [])
+        if summary:
+            df_summary = pd.DataFrame(summary)
             st.dataframe(df_summary, use_container_width=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
@@ -1168,16 +1159,6 @@ else:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
-        df_pre  = summary_dataframe(PRE_DATA)
-        df_post = summary_dataframe(POST_DATA)
-        if df_pre is not None or df_post is not None:
-            col_pre, col_post = st.columns(2)
-            with col_pre:
-                if df_pre is not None:
-                    st.dataframe(df_pre, use_container_width=True)
-            with col_post:
-                if df_post is not None:
-                    st.dataframe(df_post, use_container_width=True)
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
         pre_labels = [l for l, _ in pre_opts]
