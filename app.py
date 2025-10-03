@@ -161,7 +161,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                         for j in range(1, len(rptcol)):  # skip "No" at index 0
                             _row[rptcol[j]] = tmpstr[j]
                         sbw.SummaryReport.append(_row)\
-                        break
+                        # break
             elif tmpline[0] == '[MeasureData.PointsDataList]':
                 sbw.WaferData.clear()
                 waferno=tmpline[1]
