@@ -1053,6 +1053,7 @@ if profile_mode in ("PRE", "POST"):
         summary = data.get("SummaryReport", [])
         if summary:
             df_summary = pd.DataFrame(summary).drop(columns=["No"])
+            df_summary = df_summary.reset_index(drop=True)
             st.dataframe(df_summary, use_container_width=True, hide_index=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
