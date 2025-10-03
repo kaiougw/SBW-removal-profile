@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Tuple, List, Optional
 
 import numpy as np
+import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -149,18 +150,17 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                             break
             elif tmpline[0] == '[MeasureData.WaferDataList]':
                 sbw.SummaryReport.clear()
-                rptrows=tmpline[1]
+                rptrows = tmpline[1]
                 if rptrows.isnumeric():
                     line = fp.readline()
-                    rptcol=line.replace(' ','').rstrip().split(',')
+                    rptcol = line.replace(' ','').rstrip().split(',')
                     for _ in range(int(rptrows)):
                         line = fp.readline()
-                        tmpstr=line.replace(' ','').rstrip().split(',')
-                        _row={}
-                        for j in range(1,len(rptcol)):
-                            _row[rptcol[j]]=tmpstr[j]
+                        tmpstr = line.replace(' ','').rstrip().split(',')
+                        _row = {}
+                        for j in range(1, len(rptcol)):  # skip "No" at index 0
+                            _row[rptcol[j]] = tmpstr[j]
                         sbw.SummaryReport.append(_row)
-                        break
             elif tmpline[0] == '[MeasureData.PointsDataList]':
                 sbw.WaferData.clear()
                 waferno=tmpline[1]
@@ -260,7 +260,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
             'Angle': floatlist(angle),
             'Profiles': [floatlist2d(p) for p in profs],
         }
-    return {'Lot': lot, 'WaferData': wd_dst}
+    return {'Lot': lot, 'WaferData': wd_dst, 'SummaryReport': getattr(sbwfile, 'SummaryReport', [])}
 
 @st.cache_data(show_spinner=False) # Caches results of this function
 def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
@@ -732,6 +732,81 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, m
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
+def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
+                   nrows=2, ncols=4, height: int = 600,
+                   overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
+    """
+    Inputs:
+        r: np.ndarray
+            1D radii
+        theta: np.ndarray
+            1D angles
+        Z_line: np.ndarray
+            2D array (n_theta, n_radii)
+        zlabel: str
+            y-axis label
+        nrows, ncols: 
+            subplot grid size
+        height: int
+        overlay_pre, overlay_post: np.ndarray or None
+            optional PRE/POST overlays
+        avg: 
+            True if Average Profile selected
+    Output:
+        Line charts in Streamlit
+    """
+    r = np.asarray(r, dtype=float)
+    Z_line = np.asarray(Z_line, dtype=float)
+    if Z_line.size == 0:
+        return
+    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
+    n = Z_line.shape[0] # number of angles (scan lines)
+    count = min(n, nrows*ncols) # ensures no more plots than scan lines
+    theta = np.asarray(theta, dtype=float)
+    angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
+    # has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
+    # has_post = overlay_post is not None and np.size(overlay_post) != 0
+    for i in range(count):
+        row, col = i // ncols + 1, i % ncols + 1
+        y = Z_line[i, :]
+        x_i, y_i = finite_xy(-r, y) # -r flips line charts horizontally (like Kobelco software)
+        ang = angs[i] if i < angs.size else np.nan
+        # if has_pre:
+        #     y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
+        #     x_pre, y_pre = finite_xy(-r, y_pre) # -r flips line charts horizontally (like Kobelco software)
+        #     if y_pre.size:
+        #         fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
+        #                                  line=dict(width=1.0, color="gray"),
+        #                                  name="PRE"), row=row, col=col)
+        # if has_post:
+        #     y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
+        #     x_post, y_post = finite_xy(-r, y_post) # -r flips line charts horizontally (like Kobelco software)
+        #     if y_post.size:
+        #         fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
+        #                                  line=dict(width=1.0, color="gray"),
+        #                                  name="POST"), row=row, col=col)
+        fig.add_trace(go.Scatter(x=x_i, y=y_i, mode="lines",
+                                 line=dict(width=1.2, color="red"),
+                                 showlegend=False,
+                                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"),
+                      row=row, col=col)
+        label = f"Angle {ang+180:.1f}°"
+        fig.add_annotation(text=label, showarrow=False,
+                           x=0.5, xref="x domain", y=1.15, yref="y domain",
+                           font=dict(size=12, color="gray"), row=row, col=col)
+        if row == nrows:
+            fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
+        if col == 1:
+            fig.update_yaxes(title_text=zlabel, row=row, col=col)
+    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30)) # adjust margins
+    for r_i in range(1, nrows+1):
+        for c_i in range(1, ncols+1):
+            fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
+            fig.update_yaxes(matches="y1", row=r_i, col=c_i, showticklabels=True)
+    fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
+    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
                       waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
@@ -873,80 +948,17 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     else:
         st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
-def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
-                   nrows=2, ncols=4, height: int = 600,
-                   overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
+def summary_dataframe(data: Dict[str, Any]) -> Optional[pd.DataFrame]:
     """
-    Inputs:
-        r: np.ndarray
-            1D radii
-        theta: np.ndarray
-            1D angles
-        Z_line: np.ndarray
-            2D array (n_theta, n_radii)
-        zlabel: str
-            y-axis label
-        nrows, ncols: 
-            subplot grid size
-        height: int
-        overlay_pre, overlay_post: np.ndarray or None
-            optional PRE/POST overlays
-        avg: 
-            True if Average Profile selected
-    Output:
-        Line charts in Streamlit
+    Turn the parsed SummaryReport into a DataFrame.
     """
-    r = np.asarray(r, dtype=float)
-    Z_line = np.asarray(Z_line, dtype=float)
-    if Z_line.size == 0:
-        return
-    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
-    n = Z_line.shape[0] # number of angles (scan lines)
-    count = min(n, nrows*ncols) # ensures no more plots than scan lines
-    theta = np.asarray(theta, dtype=float)
-    angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
-    # has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
-    # has_post = overlay_post is not None and np.size(overlay_post) != 0
-    for i in range(count):
-        row, col = i // ncols + 1, i % ncols + 1
-        y = Z_line[i, :]
-        x_i, y_i = finite_xy(-r, y) # -r flips line charts horizontally (like Kobelco software)
-        ang = angs[i] if i < angs.size else np.nan
-        # if has_pre:
-        #     y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
-        #     x_pre, y_pre = finite_xy(-r, y_pre) # -r flips line charts horizontally (like Kobelco software)
-        #     if y_pre.size:
-        #         fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
-        #                                  line=dict(width=1.0, color="gray"),
-        #                                  name="PRE"), row=row, col=col)
-        # if has_post:
-        #     y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
-        #     x_post, y_post = finite_xy(-r, y_post) # -r flips line charts horizontally (like Kobelco software)
-        #     if y_post.size:
-        #         fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
-        #                                  line=dict(width=1.0, color="gray"),
-        #                                  name="POST"), row=row, col=col)
-        fig.add_trace(go.Scatter(x=x_i, y=y_i, mode="lines",
-                                 line=dict(width=1.2, color="red"),
-                                 showlegend=False,
-                                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"),
-                      row=row, col=col)
-        label = f"Angle {ang+180:.1f}°"
-        fig.add_annotation(text=label, showarrow=False,
-                           x=0.5, xref="x domain", y=1.15, yref="y domain",
-                           font=dict(size=12, color="gray"), row=row, col=col)
-        if row == nrows:
-            fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
-        if col == 1:
-            fig.update_yaxes(title_text=zlabel, row=row, col=col)
-    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30)) # adjust margins
-    for r_i in range(1, nrows+1):
-        for c_i in range(1, ncols+1):
-            fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
-            fig.update_yaxes(matches="y1", row=r_i, col=c_i, showticklabels=True)
-    fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
-    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+    sr = (data or {}).get('SummaryReport') or []
+    if not sr:
+        return None
+    df = pd.DataFrame(sr)
+    for c in df.columns: # make numbers numeric; leave non-numeric as-is
+        df[c] = pd.to_numeric(df[c], errors='ignore')
+    return df
 
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
@@ -984,6 +996,7 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
         ref = wafers.get(k, {}) or {} # ref = dict of wafer info for a specific slot.
         disp.append((f"Slot {ref.get('SlotNo', k)}", k)) 
     return disp
+
 
 # UI
 st.set_page_config(page_title="SBW Removal Profile", layout="wide")
@@ -1047,6 +1060,9 @@ if profile_mode in ("PRE", "POST"):
     if not data or not cache:
         st.info(f"Please upload a {profile_mode} file.")
     else:
+        df_summary = summary_dataframe(data)
+        if df_summary is not None:
+            st.dataframe(df_summary, use_container_width=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
@@ -1152,6 +1168,16 @@ else:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
+        df_pre  = summary_dataframe(PRE_DATA)
+        df_post = summary_dataframe(POST_DATA)
+        if df_pre is not None or df_post is not None:
+            col_pre, col_post = st.columns(2)
+            with col_pre:
+                if df_pre is not None:
+                    st.dataframe(df_pre, use_container_width=True)
+            with col_post:
+                if df_post is not None:
+                    st.dataframe(df_post, use_container_width=True)
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
         pre_labels = [l for l, _ in pre_opts]
