@@ -13,8 +13,6 @@ from PIL import Image
 import requests
 from io import BytesIO
 
-cache_data = getattr(st, "cache_data", st.cache)
-
 # Utility Functions
 def floatlist(a) -> list:
     """
@@ -113,8 +111,6 @@ class sbwinfo(object):
     WaferData={}
     def __init__(self, Lot=None):
         self.Lot = Lot
-        self.SummaryReport = []
-        self.WaferData = {}
 
 def parsesbw(sbwfile: str) -> sbwinfo:
 # Parses .sbw file into sbwinfo object
@@ -165,9 +161,9 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                         for j in range(1, len(rptcol)):  # skip "No" at index 0
                             _row[rptcol[j]] = tmpstr[j]
                         sbw.SummaryReport.append(_row)
-                        # break
+                        break
             elif tmpline[0] == '[MeasureData.PointsDataList]':
-                # sbw.WaferData.clear()
+                sbw.WaferData.clear()
                 waferno=tmpline[1]
                 if waferno.isnumeric():
                     for i in range(int(waferno)):
@@ -267,7 +263,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
         }
     return {'Lot': lot, 'WaferData': wd_dst, 'SummaryReport': getattr(sbwfile, 'SummaryReport', [])}
 
-@cache_data(show_spinner=False) # Caches results of this function
+@st.cache_data(show_spinner=False) # Caches results of this function
 def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
     """
     Parse (using `parsesbw`) and clean (using `cleansbw`) .sbw file uploaded by user, and return cleaned dict format.
@@ -467,7 +463,7 @@ def build_SlotCache(wafer_dict) -> SlotCache: #***
         r=r, theta=theta, Thk=Thk, Flat=Flat,
         Rmax=Rmax, X_mir=X_mir, Y_mir=Y_mir, Thk_mir=Thk_full, Flat_mir=Flat_full)
 
-@cache_data(show_spinner=False) # Caches results of this function; don't rerun this function for the same input
+@st.cache_data(show_spinner=False) # Caches results of this function; don't rerun this function for the same input
 def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
     """
     Takes the cleaned wafer data dictionary, loops through all slots, builds a SlotCache for each one, and returns them in a dictionary keyed by slot ID
@@ -1015,12 +1011,7 @@ with colC:
         options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
         format_func=lambda x: x[0]
     )[1] 
-    if hasattr(st, "segmented_control"):
-        profile_mode = st.segmented_control("Profile Mode", ["PRE", "POST", "REMOVAL"],
-                                            label_visibility="collapsed", width="stretch")
-    else:
-        profile_mode = st.radio("Profile Mode", ["PRE", "POST", "REMOVAL"],
-                                horizontal=True, label_visibility="collapsed")
+    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 
 # Sidebar options only when REMOVAL is selected
@@ -1164,10 +1155,7 @@ if profile_mode in ("PRE", "POST"):
         summary = data.get("SummaryReport", [])
         if summary:
             df_summary = pd.DataFrame(summary)
-            try:
-                st.dataframe(df_summary, use_container_width=True, hide_index=True)
-            except TypeError:  # older Streamlit doesn’t support hide_index
-                st.dataframe(df_summary, use_container_width=True)
+            st.dataframe(df_summary, use_container_width=True, hide_index=True)
         st.markdown("---")
 
 # profile_mode == REMOVAL:
