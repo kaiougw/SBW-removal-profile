@@ -1050,10 +1050,14 @@ if profile_mode in ("PRE", "POST"):
     if not data or not cache:
         st.info(f"Please upload a {profile_mode} file.")
     else:
+        summary = data.get("SummaryReport", [])
+        if summary:
+            df_summary = pd.DataFrame(summary)
+            st.dataframe(df_summary, use_container_width=True, hide_index=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
-        plot_key = f"do_plot_{profile_mode}" 
+        plot_key = f"do_plot_{profile_mode}"
         sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
                             on_change=reset_plot, args=(plot_key,))
         # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
@@ -1063,11 +1067,6 @@ if profile_mode in ("PRE", "POST"):
         sel_keys = [values[labels.index(lbl)] for lbl in sel] if sel else []
         if st.button("Plot", key=f"plot_btn_{profile_mode}"):
             st.session_state[plot_key] = True # Plot button as the trigger
-        
-        summary = data.get("SummaryReport", [])
-        if summary:
-            df_summary = pd.DataFrame(summary)
-            st.dataframe(df_summary, use_container_width=True, hide_index=True)
 
         prev_key = f"prev_avg_{profile_mode}"
         if prev_key not in st.session_state:
