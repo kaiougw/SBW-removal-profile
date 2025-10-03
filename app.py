@@ -949,7 +949,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
     else:
         st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-        
+
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
@@ -1053,6 +1053,8 @@ if profile_mode in ("PRE", "POST"):
         summary = data.get("SummaryReport", [])
         if summary:
             df_summary = pd.DataFrame(summary)
+            if "No" in df_summary.columns:
+                df_summary = df_summary.drop(columns=["No"])
             st.dataframe(df_summary, use_container_width=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
