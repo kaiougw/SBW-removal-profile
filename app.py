@@ -162,7 +162,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                             _row[rptcol[j]] = tmpstr[j]
                         sbw.SummaryReport.append(_row)
                         break
-r            elif tmpline[0] == '[MeasureData.PointsDataList]':
+            elif tmpline[0] == '[MeasureData.PointsDataList]':
                 sbw.WaferData.clear()
                 waferno=tmpline[1]
                 if waferno.isnumeric():
@@ -1050,10 +1050,10 @@ if profile_mode in ("PRE", "POST"):
     if not data or not cache:
         st.info(f"Please upload a {profile_mode} file.")
     else:
-        summary = data.get("SummaryReport", [])
-        if summary:
-            df_summary = pd.DataFrame(summary)
-            st.dataframe(df_summary, use_container_width=True, hide_index=True)
+        # summary = data.get("SummaryReport", [])
+        # if summary:
+        #     df_summary = pd.DataFrame(summary)
+        #     st.dataframe(df_summary, use_container_width=True, hide_index=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
@@ -1152,25 +1152,28 @@ if profile_mode in ("PRE", "POST"):
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
-
-                        st.markdown("---")
+        summary = data.get("SummaryReport", [])
+        if summary:
+            df_summary = pd.DataFrame(summary)
+            st.dataframe(df_summary, use_container_width=True, hide_index=True)
+        st.markdown("---")
 
 # profile_mode == REMOVAL:
 else:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
-        col_pre, col_post = st.columns(2)
-        with col_pre:
-            pre_summary = PRE_DATA.get("SummaryReport", [])
-            if pre_summary:
-                df_pre_summary = pd.DataFrame(pre_summary)
-                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
-        with col_post:
-            post_summary = POST_DATA.get("SummaryReport", [])
-            if post_summary:
-                df_post_summary = pd.DataFrame(post_summary)
-                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
+        # col_pre, col_post = st.columns(2)
+        # with col_pre:
+        #     pre_summary = PRE_DATA.get("SummaryReport", [])
+        #     if pre_summary:
+        #         df_pre_summary = pd.DataFrame(pre_summary)
+        #         st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+        # with col_post:
+        #     post_summary = POST_DATA.get("SummaryReport", [])
+        #     if post_summary:
+        #         df_post_summary = pd.DataFrame(post_summary)
+        #         st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
         pre_labels = [l for l, _ in pre_opts]
@@ -1348,8 +1351,19 @@ else:
                             overlay_post=post_overlay_line,
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
                         )
+        col_pre, col_post = st.columns(2)
+        with col_pre:
+            pre_summary = PRE_DATA.get("SummaryReport", [])
+            if pre_summary:
+                df_pre_summary = pd.DataFrame(pre_summary)
+                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+        with col_post:
+            post_summary = POST_DATA.get("SummaryReport", [])
+            if post_summary:
+                df_post_summary = pd.DataFrame(post_summary)
+                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
 
-                    st.markdown("---")
+        st.markdown("---")
 
 # with st.sidebar:
 #     st.markdown("---")
