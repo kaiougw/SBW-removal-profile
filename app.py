@@ -1149,12 +1149,12 @@ if profile_mode in ("PRE", "POST"):
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
         
-            summary = data.get("SummaryReport", [])
-            if summary:
-                df_summary = pd.DataFrame(summary)
-                st.dataframe(df_summary, use_container_width=True, hide_index=True)
+        summary = data.get("SummaryReport", [])
+        if summary:
+            df_summary = pd.DataFrame(summary)
+            st.dataframe(df_summary, use_container_width=True, hide_index=True)
 
-            st.markdown("---")
+        st.markdown("---")
 
 # profile_mode == REMOVAL:
 else:
