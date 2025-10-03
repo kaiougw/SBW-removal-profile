@@ -1,4 +1,6 @@
-streamlit>=1.36
-plotly==5.24.1
-numpy>=1.26
-pillow
+streamlit>=1.32
+plotly>=5.18
+pandas>=1.5
+numpy>=1.23
+Pillow>=9.5
+requests>=2.31
