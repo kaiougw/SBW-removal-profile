@@ -1050,10 +1050,6 @@ if profile_mode in ("PRE", "POST"):
     if not data or not cache:
         st.info(f"Please upload a {profile_mode} file.")
     else:
-        summary = data.get("SummaryReport", [])
-        if summary:
-            df_summary = pd.DataFrame(summary)
-            st.dataframe(df_summary, use_container_width=True, hide_index=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
@@ -1152,7 +1148,13 @@ if profile_mode in ("PRE", "POST"):
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
-                        st.markdown("---")
+        
+        summary = data.get("SummaryReport", [])
+        if summary:
+            df_summary = pd.DataFrame(summary)
+            st.dataframe(df_summary, use_container_width=True, hide_index=True)
+
+        st.markdown("---")
 
 # profile_mode == REMOVAL:
 else:
