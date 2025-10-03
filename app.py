@@ -149,7 +149,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                                 sbw.WaferCount=int(tmpstr[1])
                             break
             elif tmpline[0] == '[MeasureData.WaferDataList]':
-                sbw.SummaryReport.clear()
+                # sbw.SummaryReport.clear()
                 rptrows = tmpline[1]
                 if rptrows.isnumeric():
                     line = fp.readline()
