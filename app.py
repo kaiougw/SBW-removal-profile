@@ -1107,6 +1107,11 @@ if profile_mode in ("PRE", "POST"):
 
                         plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
 
+                        summary = data.get("SummaryReport", [])
+                        if summary:
+                            df_summary = pd.DataFrame(summary)
+                            st.dataframe(df_summary, use_container_width=True, hide_index=True)
+                        
                         col1, col2 = st.columns(2)
                         with col1:
                             plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, mask)
@@ -1152,11 +1157,11 @@ if profile_mode in ("PRE", "POST"):
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
-        summary = data.get("SummaryReport", [])
-        if summary:
-            df_summary = pd.DataFrame(summary)
-            st.dataframe(df_summary, use_container_width=True, hide_index=True)
-        st.markdown("---")
+                        summary = data.get("SummaryReport", [])
+                        if summary:
+                            df_summary = pd.DataFrame(summary)
+                            st.dataframe(df_summary, use_container_width=True, hide_index=True)
+                        st.markdown("---")
 
 # profile_mode == REMOVAL:
 else:
@@ -1249,6 +1254,18 @@ else:
                         overlay_pre=overlay_pre, overlay_post=overlay_post, positive_only=True
                     )
 
+                    col_pre, col_post = st.columns(2)
+                    with col_pre:
+                        pre_summary = PRE_DATA.get("SummaryReport", [])
+                        if pre_summary:
+                            df_pre_summary = pd.DataFrame(pre_summary)
+                            st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                    with col_post:
+                        post_summary = POST_DATA.get("SummaryReport", [])
+                        if post_summary:
+                            df_post_summary = pd.DataFrame(post_summary)
+                            st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
+                    
                     view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
                     btn_key  = f"btn_avg_pair_{pre_slot}_{post_slot}"
                     if view_key not in st.session_state:
@@ -1351,19 +1368,20 @@ else:
                             overlay_post=post_overlay_line,
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
                         )
-        col_pre, col_post = st.columns(2)
-        with col_pre:
-            pre_summary = PRE_DATA.get("SummaryReport", [])
-            if pre_summary:
-                df_pre_summary = pd.DataFrame(pre_summary)
-                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
-        with col_post:
-            post_summary = POST_DATA.get("SummaryReport", [])
-            if post_summary:
-                df_post_summary = pd.DataFrame(post_summary)
-                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
 
-        st.markdown("---")
+                    col_pre, col_post = st.columns(2)
+                    with col_pre:
+                        pre_summary = PRE_DATA.get("SummaryReport", [])
+                        if pre_summary:
+                            df_pre_summary = pd.DataFrame(pre_summary)
+                            st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                    with col_post:
+                        post_summary = POST_DATA.get("SummaryReport", [])
+                        if post_summary:
+                            df_post_summary = pd.DataFrame(post_summary)
+                            st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
+
+                    st.markdown("---")
 
 # with st.sidebar:
 #     st.markdown("---")
