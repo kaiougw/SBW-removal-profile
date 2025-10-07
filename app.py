@@ -1110,7 +1110,13 @@ if profile_mode in ("PRE", "POST"):
                         summary = data.get("SummaryReport", [])
                         if summary:
                             df_summary = pd.DataFrame(summary)
-                            st.dataframe(df_summary, use_container_width=True, hide_index=True)
+                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_summary, use_container_width=True, hide_index=True)
                         
                         col1, col2 = st.columns(2)
                         with col1:
@@ -1160,7 +1166,13 @@ if profile_mode in ("PRE", "POST"):
                         summary = data.get("SummaryReport", [])
                         if summary:
                             df_summary = pd.DataFrame(summary)
-                            st.dataframe(df_summary, use_container_width=True, hide_index=True)
+                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_summary, use_container_width=True, hide_index=True)
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
@@ -1259,12 +1271,24 @@ else:
                         pre_summary = PRE_DATA.get("SummaryReport", [])
                         if pre_summary:
                             df_pre_summary = pd.DataFrame(pre_summary)
-                            st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                            slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_pre_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
                     with col_post:
                         post_summary = POST_DATA.get("SummaryReport", [])
                         if post_summary:
                             df_post_summary = pd.DataFrame(post_summary)
-                            st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
+                            slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_post_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
                     
                     view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
                     btn_key  = f"btn_avg_pair_{pre_slot}_{post_slot}"
@@ -1374,12 +1398,24 @@ else:
                         pre_summary = PRE_DATA.get("SummaryReport", [])
                         if pre_summary:
                             df_pre_summary = pd.DataFrame(pre_summary)
-                            st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                            slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_pre_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
                     with col_post:
                         post_summary = POST_DATA.get("SummaryReport", [])
                         if post_summary:
                             df_post_summary = pd.DataFrame(post_summary)
-                            st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
+                            slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_post_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
 
                     st.markdown("---")
 
