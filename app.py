@@ -1423,8 +1423,6 @@ else:
 #     st.markdown("---")
 #     st.link_button("Documentation", "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md")
 
-import requests
-
 if "open_readme" not in st.session_state:
     st.session_state.open_readme = False
 
