@@ -1110,7 +1110,7 @@ if profile_mode in ("PRE", "POST"):
                         summary = data.get("SummaryReport", [])
                         if summary:
                             df_summary = pd.DataFrame(summary)
-                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None)
+                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None) # normalizes each column name (trims spaces, makes lowercase), then check if it matches "slotno"
                             if slot_col:
                                 styler = df_summary.style.apply(
                                     lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(slotno) else '' for _ in r.index],axis=1)
