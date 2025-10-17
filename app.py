@@ -513,9 +513,9 @@ def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data 
         - surface_array: np.ndarray -> for 2D plots, so mirrored
             Mirrored 2D array, shape (2*n_theta, n_radius), used for plotting full wafer surfaces.
         - label: str
-            Axis label string ("Flatness (µm)" or "Thickness (µm)").
+            Axis label string ("Shape (µm)" or "Thickness (µm)").
     """
-    return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
+    return (c.Flat, c.Flat_mir, 'Shape (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
 def graph_label(graph: str, prefix: str = "") -> str:
     """
@@ -921,7 +921,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     )
 
     if show_y2:
-        y2 = dict(overlaying="y", side="right", showgrid=False, title=f"{'Flatness' if match_y2 else 'Thickness'} (µm)")
+        y2 = dict(overlaying="y", side="right", showgrid=False, title=f"{'Shape' if match_y2 else 'Thickness'} (µm)")
         if match_y2:
             y2["matches"] = "y"
         fig.update_layout(yaxis2=y2)
