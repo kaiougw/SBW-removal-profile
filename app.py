@@ -531,9 +531,9 @@ def graph_label(graph: str, prefix: str = "") -> str:
     Output
     ---
     str
-        Label string ("Flatness", "Thickness", or with prefix, e.g., "PRE Flatness").
+        Label string ("Shape", "Thickness", or with prefix, e.g., "PRE Flatness").
     """
-    base = "Flatness" if graph == "flat" else "Thickness"
+    base = "Shape" if graph == "flat" else "Thickness"
     if prefix:
         return f"{prefix} {base}"
     return f"{base}"
@@ -1008,7 +1008,7 @@ with colB:
 with colC:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
+        options=[("Thickness", "thk"), ("Shape", "flat")], label_visibility="hidden",
         format_func=lambda x: x[0]
     )[1] 
     profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
