@@ -1010,25 +1010,13 @@ with colC:
     )[1]
     profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
-    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", disabled=False) # <<<
+    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare REF with ", disabled=False)
 
-    if comp_profiles:
-        colA, colB, colC, colD = st.columns([1, 1, 1, 1])
-        with colA:
-            pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
-        with colB:
-            post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-        with colC:
-            comp_file = st.file_uploader("Choose a COMP SBW file (.sbw)", type=["sbw"], key="comp")
-        with colD:
-            graph = st.selectbox(  # dropdown menu (Thickness | Flatness)
-                "Graph Mode",
-                options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
-                format_func=lambda x: x[0]
-            )[1]
-            profile_mode = st.segmented_control("Profile Mode", ["REMOVAL", "COMP", "Comparison"],
-                                                label_visibility="collapsed", width="stretch")  # (PRE | POST | REMOVAL)
-            avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+ref_file = None
+if comp_profiles:
+    col_ref, _ = st.columns([1, 2])
+    with col_ref:
+        ref_file = st.file_uploader("Choose a REF SBW file (.sbw)", type=["sbw"], key="ref")
 
 # PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
@@ -1355,23 +1343,7 @@ else:
 
 
 
-# REMOVAL vs COMP ==================================================
-# if comp_profiles:
-#     colA, colB, colC, colD = st.columns([1, 1, 1, 1])
-#     with colA:
-#         pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
-#     with colB:
-#         post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-#     with colC:
-#         comp_file = st.file_uploader("Choose a COMP SBW file (.sbw)", type=["sbw"], key="comp")
-#     with colD:
-#         graph = st.selectbox( # dropdown menu (Thickness | Flatness)
-#             "Graph Mode",
-#             options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
-#             format_func=lambda x: x[0]
-#         )[1]
-#         profile_mode = st.segmented_control("Profile Mode",["REMOVAL", "COMP", "Comparison"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
-#         avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+# REMOVAL vs  ==================================================
 
 
 
