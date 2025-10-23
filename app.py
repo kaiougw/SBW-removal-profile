@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Tuple, List, Optional
 
 import numpy as np
-import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -149,19 +148,19 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                                 sbw.WaferCount=int(tmpstr[1])
                             break
             elif tmpline[0] == '[MeasureData.WaferDataList]':
-                # sbw.SummaryReport.clear()
-                rptrows = tmpline[1]
+                sbw.SummaryReport.clear()
+                rptrows=tmpline[1]
                 if rptrows.isnumeric():
                     line = fp.readline()
-                    rptcol = line.replace(' ','').rstrip().split(',')
+                    rptcol=line.replace(' ','').rstrip().split(',')
                     for _ in range(int(rptrows)):
                         line = fp.readline()
-                        tmpstr = line.replace(' ','').rstrip().split(',')
-                        _row = {}
-                        for j in range(1, len(rptcol)):  # skip "No" at index 0
-                            _row[rptcol[j]] = tmpstr[j]
-                        sbw.SummaryReport.append(_row)\
-                        # break
+                        tmpstr=line.replace(' ','').rstrip().split(',')
+                        _row={}
+                        for j in range(1,len(rptcol)):
+                            _row[rptcol[j]]=tmpstr[j]
+                        sbw.SummaryReport.append(_row)
+                        break
             elif tmpline[0] == '[MeasureData.PointsDataList]':
                 sbw.WaferData.clear()
                 waferno=tmpline[1]
@@ -261,7 +260,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
             'Angle': floatlist(angle),
             'Profiles': [floatlist2d(p) for p in profs],
         }
-    return {'Lot': lot, 'WaferData': wd_dst, 'SummaryReport': getattr(sbwfile, 'SummaryReport', [])}
+    return {'Lot': lot, 'WaferData': wd_dst}
 
 @st.cache_data(show_spinner=False) # Caches results of this function
 def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
@@ -513,9 +512,9 @@ def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data 
         - surface_array: np.ndarray -> for 2D plots, so mirrored
             Mirrored 2D array, shape (2*n_theta, n_radius), used for plotting full wafer surfaces.
         - label: str
-            Axis label string ("Shape (µm)" or "Thickness (µm)").
+            Axis label string ("Flatness (µm)" or "Thickness (µm)").
     """
-    return (c.Flat, c.Flat_mir, 'Shape (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
+    return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
 def graph_label(graph: str, prefix: str = "") -> str:
     """
@@ -531,9 +530,9 @@ def graph_label(graph: str, prefix: str = "") -> str:
     Output
     ---
     str
-        Label string ("Shape", "Thickness", or with prefix, e.g., "PRE Flatness").
+        Label string ("Flatness", "Thickness", or with prefix, e.g., "PRE Flatness").
     """
-    base = "Shape" if graph == "flat" else "Thickness"
+    base = "Flatness" if graph == "flat" else "Thickness"
     if prefix:
         return f"{prefix} {base}"
     return f"{base}"
@@ -733,6 +732,146 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, m
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
+def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
+                      overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
+                      waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
+    """
+    Inputs:
+        r: np.ndarray
+            1D array of radii
+        line: np.ndarray
+            1D array of values
+        zlabel: str
+            y-axis label
+        title: str
+        height: int
+        overlay_pre, overlay_post: np.ndarray or None
+            None by default
+        avg: 
+            True if Average Profile checkbox checked
+        waferimg: str or None
+            Wafer image
+        rotation_deg: float
+            Rotation for arrow image
+        positive_only: bool
+            if True, only plot r>=0
+    Output:
+        Line chart of a single angle in Streamlit
+    """
+    x = np.asarray(r, dtype=float)
+    y = np.asarray(line, dtype=float)
+    x_full = np.asarray(r, dtype=float)
+    y_full = np.asarray(line, dtype=float)
+    if positive_only: # when Average Profile is selected, chart only +r
+        m = (x_full >= 0) & np.isfinite(y_full)
+        x = x_full[m]
+        y = y_full[m]
+    else: # else both +r and -r are charted
+        x, y = finite_xy(-x_full, y_full) # -x_full flips line chart horizontally (like Kobelco software)
+    fig = go.Figure()
+
+    show_y2 = (overlay_pre is not None) or (overlay_post is not None)
+    match_y2 = False
+    if show_y2:
+        rem_max = np.nanmax(np.abs(y[np.isfinite(y)])) if np.isfinite(y).any() else 0.0
+        over_vals = []
+        if overlay_pre is not None:
+            yp = np.asarray(overlay_pre, dtype=float)
+            if positive_only and yp.size == y_full.size:
+                yp = yp[m]
+            over_vals.append(yp)
+        if overlay_post is not None:
+            yo = np.asarray(overlay_post, dtype=float)
+            if positive_only and yo.size == y_full.size:
+                yo = yo[m]
+            over_vals.append(yo)
+        if over_vals:
+            ov = np.concatenate([np.asarray(v, dtype=float).ravel() for v in over_vals])
+            ov = ov[np.isfinite(ov)]
+            ov_max = np.nanmax(np.abs(ov)) if ov.size else 0.0
+        else:
+            ov_max = 0.0
+        ratio = (ov_max / rem_max) if rem_max > 0 else np.inf
+        match_y2 = (ratio <= 5.0)
+    
+    # overlay PRE
+    if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
+        y_pre = np.asarray(overlay_pre, dtype=float)
+        if positive_only and y_pre.size == y_full.size: # when Average Profile is selected
+            y_pre = y_pre[m]
+        y_pre = y_pre[:x.size]
+        x_pre = x[:y_pre.size]
+        x_pre, y_pre = finite_xy(x_pre, y_pre)
+        if y_pre.size:
+            fig.add_trace(go.Scatter(
+                x=x_pre, y=y_pre, mode="lines",
+                name="PRE", line=dict(width=1.0, color="gray"),
+                yaxis="y2" if show_y2 else "y"
+            ))
+    # overlay POST
+    if overlay_post is not None: # if "Overlay line charts" checkbox is checked
+        y_post = np.asarray(overlay_post, dtype=float)
+        if positive_only and y_post.size == y_full.size: # when Average Profile is selected
+            y_post = y_post[m]
+        y_post = y_post[:x.size]
+        x_post = x[:y_post.size]
+        x_post, y_post = finite_xy(x_post, y_post)
+        if y_post.size:
+            fig.add_trace(go.Scatter(
+                x=x_post, y=y_post, mode="lines",
+                name="POST", line=dict(width=1.0, color="gray"),
+                yaxis="y2" if show_y2 else "y"
+            ))
+    # main line
+    if y.size:
+        fig.add_trace(go.Scatter(
+            x=x, y=y, mode="lines",
+            line=dict(color="red"),
+            name="Removal",
+            yaxis="y"
+        ))
+
+    fig.update_layout(
+        margin=dict(l=30, r=30, t=30, b=30), # adjust margins
+        xaxis_title="Radius (mm)",
+        yaxis_title=zlabel,
+        hovermode="x unified",
+        dragmode="pan",
+        height=height,
+        showlegend=False,
+        xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
+        yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False)
+    )
+
+    if show_y2:
+        y2 = dict(overlaying="y", side="right", showgrid=False, title=f"{'Flatness' if match_y2 else 'Thickness'} (µm)")
+        if match_y2:
+            y2["matches"] = "y"
+        fig.update_layout(yaxis2=y2)
+
+    if waferimg:
+        col_plot, col_img = st.columns([12, 1])
+        with col_plot:
+            st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+        with col_img:
+            combined = overlay_images(
+                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
+                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arrowimg.png",
+                arrowimg_size=225,
+                rotation_deg=rotation_deg
+            )
+
+            # combined = overlay_images(
+            #     r"D:\source\ntcpdr\img\waferimg.jpg",
+            #     r"D:\source\ntcpdr\img\arrowimg.png",
+            #     arrowimg_size=225,
+            #     rotation_deg=rotation_deg
+            # )
+
+            st.image(combined, width=200) # adjust wafer size
+            st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
+    else:
+        st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
 def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
                    nrows=2, ncols=4, height: int = 600,
@@ -809,147 +948,6 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
     fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
-def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
-                      overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
-                      waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
-    """
-    Inputs:
-        r: np.ndarray
-            1D array of radii
-        line: np.ndarray
-            1D array of values
-        zlabel: str
-            y-axis label
-        title: str
-        height: int
-        overlay_pre, overlay_post: np.ndarray or None
-            None by default
-        avg: 
-            True if Average Profile checkbox checked
-        waferimg: str or None
-            Wafer image
-        rotation_deg: float
-            Rotation for arrow image
-        positive_only: bool
-            if True, only plot r>=0
-    Output:
-        Line chart of a single angle in Streamlit
-    """
-    x = np.asarray(r, dtype=float)
-    y = np.asarray(line, dtype=float)
-    x_full = np.asarray(r, dtype=float)
-    y_full = np.asarray(line, dtype=float)
-    if positive_only: # when Average Profile is selected, chart only +r
-        m = (x_full >= 0) & np.isfinite(y_full)
-        x = x_full[m]
-        y = y_full[m]
-    else: # else both +r and -r are charted
-        x, y = finite_xy(-x_full, y_full) # -x_full flips line chart horizontally (like Kobelco software)
-    fig = go.Figure()
-
-    show_y2 = (overlay_pre is not None) or (overlay_post is not None) # if overlay is selected, show secondary y-axis
-    match_y2 = False # by default secondary y-axis does not match the primary y-axis
-    if show_y2:
-        rem_max = np.nanmax(np.abs(y[np.isfinite(y)])) if np.isfinite(y).any() else 0.0 # find largest Removal value
-        overlay_values = []
-        if overlay_pre is not None:
-            yp = np.asarray(overlay_pre, dtype=float)
-            if positive_only and yp.size == y_full.size:
-                yp = yp[m]
-            overlay_values.append(yp)
-        if overlay_post is not None:
-            yo = np.asarray(overlay_post, dtype=float)
-            if positive_only and yo.size == y_full.size:
-                yo = yo[m]
-            overlay_values.append(yo)
-        if overlay_values:
-            ov = np.concatenate([np.asarray(v, dtype=float).ravel() for v in overlay_values])
-            ov = ov[np.isfinite(ov)]
-            ov_max = np.nanmax(np.abs(ov)) if ov.size else 0.0 # find largest overlay value
-        else:
-            ov_max = 0.0
-        ratio = (ov_max / rem_max) if rem_max > 0 else np.inf
-        match_y2 = (ratio <= 5.0) # if the overlay values are within 5x of removal values, then secondary y-axis matches primary y-axis
-    
-    # overlay PRE
-    if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
-        y_pre = np.asarray(overlay_pre, dtype=float)
-        if positive_only and y_pre.size == y_full.size: # when Average Profile is selected
-            y_pre = y_pre[m]
-        y_pre = y_pre[:x.size]
-        x_pre = x[:y_pre.size]
-        x_pre, y_pre = finite_xy(x_pre, y_pre)
-        if y_pre.size:
-            fig.add_trace(go.Scatter(
-                x=x_pre, y=y_pre, mode="lines",
-                name="PRE", line=dict(width=1.0, color="gray"),
-                yaxis="y2" if show_y2 else "y"
-            ))
-    # overlay POST
-    if overlay_post is not None: # if "Overlay line charts" checkbox is checked
-        y_post = np.asarray(overlay_post, dtype=float)
-        if positive_only and y_post.size == y_full.size: # when Average Profile is selected
-            y_post = y_post[m]
-        y_post = y_post[:x.size]
-        x_post = x[:y_post.size]
-        x_post, y_post = finite_xy(x_post, y_post)
-        if y_post.size:
-            fig.add_trace(go.Scatter(
-                x=x_post, y=y_post, mode="lines",
-                name="POST", line=dict(width=1.0, color="gray"),
-                yaxis="y2" if show_y2 else "y"
-            ))
-    # main line
-    if y.size:
-        fig.add_trace(go.Scatter(
-            x=x, y=y, mode="lines",
-            line=dict(color="red"),
-            name="Removal",
-            yaxis="y"
-        ))
-
-    fig.update_layout(
-        margin=dict(l=30, r=30, t=30, b=30), # adjust margins
-        xaxis_title="Radius (mm)",
-        yaxis_title=zlabel,
-        hovermode="x unified",
-        dragmode="pan",
-        height=height,
-        showlegend=False,
-        xaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False),
-        yaxis=dict(showgrid=True, gridcolor="lightgray", zeroline=False)
-    )
-
-    if show_y2:
-        y2 = dict(overlaying="y", side="right", showgrid=False, title=f"{'Shape' if match_y2 else 'Thickness'} (µm)")
-        if match_y2:
-            y2["matches"] = "y"
-        fig.update_layout(yaxis2=y2)
-
-    if waferimg:
-        col_plot, col_img = st.columns([12, 1])
-        with col_plot:
-            st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-        with col_img:
-            combined = overlay_images(
-                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
-                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arrowimg.png",
-                arrowimg_size=225,
-                rotation_deg=rotation_deg
-            )
-
-            # combined = overlay_images(
-            #     r"D:\source\ntcpdr\img\waferimg.jpg",
-            #     r"D:\source\ntcpdr\img\arrowimg.png",
-            #     arrowimg_size=225,
-            #     rotation_deg=rotation_deg
-            # )
-
-            st.image(combined, width=200) # adjust wafer size
-            st.markdown(f"<div style='text-align:center; font-size:0.9em; color:gray;'>{rotation_deg:.1f}°</div>", unsafe_allow_html=True)
-    else:
-        st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
@@ -987,7 +985,6 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
         disp.append((f"Slot {ref.get('SlotNo', k)}", k)) 
     return disp
 
-
 # UI
 st.set_page_config(page_title="SBW Removal Profile", layout="wide")
 st.title("SBW Removal Profile")
@@ -1000,15 +997,17 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC = st.columns([1, 1, 1])
+colA, colB, colC, colD = st.columns([1, 1, 1, 1])
 with colA:
-    pre_file = st.file_uploader("Upload PRE .sbw", type=["sbw"], key="pre")
+    pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
 with colB:
-    post_file = st.file_uploader("Upload POST .sbw", type=["sbw"], key="post")
+    post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
 with colC:
+    third_file = st.file_uploader("Choose an SBW file (.sbw)", type=["sbw"], key="third")
+with colD:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Shape", "flat")], label_visibility="hidden",
+        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
         format_func=lambda x: x[0]
     )[1] 
     profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
@@ -1050,14 +1049,10 @@ if profile_mode in ("PRE", "POST"):
     if not data or not cache:
         st.info(f"Please upload a {profile_mode} file.")
     else:
-        # summary = data.get("SummaryReport", [])
-        # if summary:
-        #     df_summary = pd.DataFrame(summary)
-        #     st.dataframe(df_summary, use_container_width=True, hide_index=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
-        plot_key = f"do_plot_{profile_mode}"
+        plot_key = f"do_plot_{profile_mode}" 
         sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
                             on_change=reset_plot, args=(plot_key,))
         # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
@@ -1107,17 +1102,6 @@ if profile_mode in ("PRE", "POST"):
 
                         plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
 
-                        summary = data.get("SummaryReport", [])
-                        if summary:
-                            df_summary = pd.DataFrame(summary)
-                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None) # normalizes each column name (trims spaces, makes lowercase), then check if it matches "slotno"
-                            if slot_col:
-                                styler = df_summary.style.apply(
-                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(slotno) else '' for _ in r.index],axis=1)
-                                st.dataframe(styler, use_container_width=True, hide_index=True)
-                            else:
-                                st.dataframe(df_summary, use_container_width=True, hide_index=True)
-                        
                         col1, col2 = st.columns(2)
                         with col1:
                             plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, mask)
@@ -1163,16 +1147,6 @@ if profile_mode in ("PRE", "POST"):
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
-                        summary = data.get("SummaryReport", [])
-                        if summary:
-                            df_summary = pd.DataFrame(summary)
-                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None)
-                            if slot_col:
-                                styler = df_summary.style.apply(
-                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(slotno) else '' for _ in r.index],axis=1)
-                                st.dataframe(styler, use_container_width=True, hide_index=True)
-                            else:
-                                st.dataframe(df_summary, use_container_width=True, hide_index=True)
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
@@ -1180,17 +1154,6 @@ else:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
-        # col_pre, col_post = st.columns(2)
-        # with col_pre:
-        #     pre_summary = PRE_DATA.get("SummaryReport", [])
-        #     if pre_summary:
-        #         df_pre_summary = pd.DataFrame(pre_summary)
-        #         st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
-        # with col_post:
-        #     post_summary = POST_DATA.get("SummaryReport", [])
-        #     if post_summary:
-        #         df_post_summary = pd.DataFrame(post_summary)
-        #         st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
         pre_labels = [l for l, _ in pre_opts]
@@ -1266,30 +1229,6 @@ else:
                         overlay_pre=overlay_pre, overlay_post=overlay_post, positive_only=True
                     )
 
-                    col_pre, col_post = st.columns(2)
-                    with col_pre:
-                        pre_summary = PRE_DATA.get("SummaryReport", [])
-                        if pre_summary:
-                            df_pre_summary = pd.DataFrame(pre_summary)
-                            slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
-                            if slot_col:
-                                styler = df_pre_summary.style.apply(
-                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else '' for _ in r.index],axis=1)
-                                st.dataframe(styler, use_container_width=True, hide_index=True)
-                            else:
-                                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
-                    with col_post:
-                        post_summary = POST_DATA.get("SummaryReport", [])
-                        if post_summary:
-                            df_post_summary = pd.DataFrame(post_summary)
-                            slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
-                            if slot_col:
-                                styler = df_post_summary.style.apply(
-                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else '' for _ in r.index],axis=1)
-                                st.dataframe(styler, use_container_width=True, hide_index=True)
-                            else:
-                                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
-                    
                     view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
                     btn_key  = f"btn_avg_pair_{pre_slot}_{post_slot}"
                     if view_key not in st.session_state:
@@ -1393,35 +1332,13 @@ else:
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
                         )
 
-                    col_pre, col_post = st.columns(2)
-                    with col_pre:
-                        pre_summary = PRE_DATA.get("SummaryReport", [])
-                        if pre_summary:
-                            df_pre_summary = pd.DataFrame(pre_summary)
-                            slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
-                            if slot_col:
-                                styler = df_pre_summary.style.apply(
-                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else '' for _ in r.index],axis=1)
-                                st.dataframe(styler, use_container_width=True, hide_index=True)
-                            else:
-                                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
-                    with col_post:
-                        post_summary = POST_DATA.get("SummaryReport", [])
-                        if post_summary:
-                            df_post_summary = pd.DataFrame(post_summary)
-                            slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
-                            if slot_col:
-                                styler = df_post_summary.style.apply(
-                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else '' for _ in r.index],axis=1)
-                                st.dataframe(styler, use_container_width=True, hide_index=True)
-                            else:
-                                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
-
                     st.markdown("---")
 
 # with st.sidebar:
 #     st.markdown("---")
 #     st.link_button("Documentation", "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md")
+
+import requests
 
 if "open_readme" not in st.session_state:
     st.session_state.open_readme = False
