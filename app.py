@@ -997,14 +997,12 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC, colD = st.columns([1, 1, 1, 1])
+colA, colB, colC= st.columns([1, 1, 1])
 with colA:
     pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
 with colB:
     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
 with colC:
-    third_file = st.file_uploader("Choose an SBW file (.sbw)", type=["sbw"], key="third")
-with colD:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
         options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
@@ -1012,6 +1010,7 @@ with colD:
     )[1] 
     profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", disabled=False)
 
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
