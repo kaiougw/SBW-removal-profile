@@ -1012,7 +1012,7 @@ with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
     comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", disabled=False) # <<<
 
-# PRE vs POST ==================================================
+# PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
 overlay_prepost_lines = False
@@ -1338,33 +1338,6 @@ else:
 
 
 # REMOVAL vs COMP ==================================================
-PRE_DATA = POST_DATA = COMP_DATA = None
-PRE_CACHE = POST_CACHE = COMP_CACHE = None
-
-# if pre_file is not None:
-#     try:
-#         PRE_DATA = parsecleansbw(pre_file.read())
-#         PRE_CACHE = cache_for_data(PRE_DATA)
-#         st.success(f"Loaded {PRE_DATA.get('Lot', '')}")
-#     except Exception as e:
-#         st.error(f"Failed to parse PRE: {e}")
-# 
-# if post_file is not None:
-#     try:
-#         POST_DATA = parsecleansbw(post_file.read())
-#         POST_CACHE = cache_for_data(POST_DATA)
-#         st.success(f"Loaded {POST_DATA.get('Lot', '')}")
-#     except Exception as e:
-#         st.error(f"Failed to parse POST: {e}")
-# 
-# if comp_file is not None:
-#     try:
-#         COMP_DATA = parsecleansbw(comp_file.read())
-#         COMP_CACHE = cache_for_data(COMP_DATA)
-#         st.success(f"Loaded {COMP_DATA.get('Lot', '')}")
-#     except Exception as e:
-#         st.error(f"Failed to parse COMP: {e}")
-
 if comp_profiles:
     colA, colB, colC, colD = st.columns([1, 1, 1, 1])
     with colA:
@@ -1381,6 +1354,33 @@ if comp_profiles:
         )[1]
         profile_mode = st.segmented_control("Profile Mode",["REMOVAL", "COMP", "Comparison"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
         avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+
+    PRE_DATA = POST_DATA = COMP_DATA = None
+    PRE_CACHE = POST_CACHE = COMP_CACHE = None
+
+    if pre_file is not None:
+        try:
+            PRE_DATA = parsecleansbw(pre_file.read())
+            PRE_CACHE = cache_for_data(PRE_DATA)
+            st.success(f"Loaded {PRE_DATA.get('Lot', '')}")
+        except Exception as e:
+            st.error(f"Failed to parse PRE: {e}")
+
+    if post_file is not None:
+        try:
+            POST_DATA = parsecleansbw(post_file.read())
+            POST_CACHE = cache_for_data(POST_DATA)
+            st.success(f"Loaded {POST_DATA.get('Lot', '')}")
+        except Exception as e:
+            st.error(f"Failed to parse POST: {e}")
+
+    if comp_file is not None:
+        try:
+            COMP_DATA = parsecleansbw(comp_file.read())
+            COMP_CACHE = cache_for_data(COMP_DATA)
+            st.success(f"Loaded {COMP_DATA.get('Lot', '')}")
+        except Exception as e:
+            st.error(f"Failed to parse COMP: {e}")
 
 # ==================================================================
 
