@@ -1007,11 +1007,12 @@ with colC:
         "Graph Mode",
         options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
         format_func=lambda x: x[0]
-    )[1] 
+    )[1]
     profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
-    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", disabled=False)
+    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", disabled=False) # <<<
 
+# PRE vs POST ==================================================
 # Sidebar options only when REMOVAL is selected
 # show_prepost_3d = False
 overlay_prepost_lines = False
@@ -1332,10 +1333,56 @@ else:
                         )
 
                     st.markdown("---")
+# ==================================================================
 
-# with st.sidebar:
-#     st.markdown("---")
-#     st.link_button("Documentation", "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md")
+
+
+# REMOVAL vs COMP ==================================================
+PRE_DATA = POST_DATA = COMP_DATA = None # <<<
+PRE_CACHE = POST_CACHE = COMP_CACHE = None # <<<
+
+if pre_file is not None:
+    try:
+        PRE_DATA = parsecleansbw(pre_file.read())
+        PRE_CACHE = cache_for_data(PRE_DATA)
+        st.success(f"Loaded {PRE_DATA.get('Lot', '')}")
+    except Exception as e:
+        st.error(f"Failed to parse PRE: {e}")
+
+if post_file is not None:
+    try:
+        POST_DATA = parsecleansbw(post_file.read())
+        POST_CACHE = cache_for_data(POST_DATA)
+        st.success(f"Loaded {POST_DATA.get('Lot', '')}")
+    except Exception as e:
+        st.error(f"Failed to parse POST: {e}")
+
+if comp_file is not None:
+    try:
+        COMP_DATA = parsecleansbw(comp_file.read())
+        COMP_CACHE = cache_for_data(COMP_DATA)
+        st.success(f"Loaded {COMP_DATA.get('Lot', '')}")
+    except Exception as e:
+        st.error(f"Failed to parse COMP: {e}")
+        
+if comp_profiles:
+    colA, colB, colC, colD = st.columns([1, 1, 1, 1])
+    with colA:
+        pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
+    with colB:
+        post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+    with colC:
+        comp_file = st.file_uploader("Choose a COMP SBW file (.sbw)", type=["sbw"], key="comp")
+    with colD:
+        graph = st.selectbox( # dropdown menu (Thickness | Flatness)
+            "Graph Mode",
+            options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
+            format_func=lambda x: x[0]
+        )[1]
+        profile_mode = st.segmented_control("Profile Mode",["REMOVAL", "COMP", "Comparison"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
+        avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+        
+# ==================================================================
 
 import requests
 
