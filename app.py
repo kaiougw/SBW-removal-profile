@@ -1012,32 +1012,11 @@ with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
     comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare REF with ", disabled=False)
 
-# ref_file = None
-# if comp_profiles:
-#     col_ref, _ = st.columns([1, 2])
-#     with col_ref:
-#         ref_file = st.file_uploader("Choose a REF SBW file (.sbw)", type=["sbw"], key="ref")
-
-if comp_profiles and profile_mode == "REMOVAL":
-    colA, colB, colC, colD = st.columns([1, 1, 1, 1])
-    with colA:
-        pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
-    with colB:
-        post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-    with colC:
-        ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref")
-    with colD:
-        st.empty()  # spacer or any extra control if you want
-else:
-    colA, colB, colC = st.columns([1, 1, 1])
-    with colA:
-        pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
-    with colB:
-        post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-    with colC:
-        # keep your existing right-side controls here if you prefer,
-        # or leave empty for symmetry
-        st.empty()
+ref_file = None
+if comp_profiles:
+    col_ref, _ = st.columns([1, 2])
+    with col_ref:
+        ref_file = st.file_uploader("Choose a REF SBW file (.sbw)", type=["sbw"], key="ref")
 
 # PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
