@@ -1002,6 +1002,7 @@ with colA:
     pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
 with colB:
     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+st.markdown("---")
 with colC:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
