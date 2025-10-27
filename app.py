@@ -1009,7 +1009,7 @@ with colB:
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 with colD:
-    comp_profiles = st.checkbox("Compare against Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
+    comp_profiles = st.checkbox("Compare against a Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
@@ -1174,7 +1174,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
 
         plot_key = "do_plot_REMOVAL"
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             sel_pre = st.multiselect(
                 "PRE slots", pre_labels, default=None, label_visibility="hidden",
@@ -1185,6 +1185,8 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                 "POST slots", post_labels, default=None, label_visibility="hidden",
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
+        with col3:
+            st.empty()
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
