@@ -1009,8 +1009,7 @@ with colB:
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 with colD:
-    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
-
+    comp_profiles = st.checkbox("Compare against Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
@@ -1020,7 +1019,6 @@ with colB:
 with colC:
     ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref")
 
-# st.markdown("---")
 
 # PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
@@ -1047,7 +1045,7 @@ if post_file is not None:
     except Exception as e:
         st.error(f"Failed to parse POST: {e}")
 
-if ref_file is not None: # <<<
+if ref_file is not None:
     try:
         REF_DATA = parsecleansbw(ref_file.read())
         REF_CACHE = cache_for_data(REF_DATA)
@@ -1163,7 +1161,7 @@ if profile_mode in ("PRE", "POST"):
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
-else:
+if profile_mode == "REMOVAL":
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
