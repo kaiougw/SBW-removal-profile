@@ -997,26 +997,82 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC= st.columns([1, 1, 1])
-with colA:
-    pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
-with colB:
-    post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-with colC:
-    graph = st.selectbox( # dropdown menu (Thickness | Flatness)
+# colA, colB, colC= st.columns([1, 1, 1])
+# # with colA:
+# #     pre_file = st.file_uploader("Choose a PRE SBW file (.sbw)", type=["sbw"], key="pre")
+# # with colB:
+# #     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+# # with colC:
+# #     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
+# #         "Graph Mode",
+# #         options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
+# #         format_func=lambda x: x[0]
+# #     )[1]
+# #     profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
+# #     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+# #     comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare the removal profile with reference", disabled=False)
+# # 
+# # ref_file = None
+# # if comp_profiles:
+# #     col_ref, _ = st.columns([1, 2])
+# #     with col_ref:
+# #         ref_file = st.file_uploader("Choose a Reference SBW file (.sbw)", type=["sbw"], key="ref")
+
+
+ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([1, 1, 1, 1])
+
+with ctrl1:
+    graph = st.selectbox(
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
+        options=[("Thickness", "thk"), ("Flatness", "flat")],
+        label_visibility="collapsed",
         format_func=lambda x: x[0]
     )[1]
-    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
-    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
-    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare REF with ", disabled=False)
 
-ref_file = None
-if comp_profiles:
-    col_ref, _ = st.columns([1, 2])
-    with col_ref:
-        ref_file = st.file_uploader("Choose a REF SBW file (.sbw)", type=["sbw"], key="ref")
+with ctrl2:
+    profile_mode = st.segmented_control(
+        "Profile Mode",
+        ["PRE", "POST", "REMOVAL"],
+        label_visibility="collapsed",
+        width="stretch"
+    )
+
+with ctrl3:
+    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", value=False)
+
+with ctrl4:
+    comp_profiles = st.checkbox(
+        "Compare with REF",
+        key="comp_profiles",
+        help="Compare (PRE − POST) against REF",
+        value=False,
+        disabled=(profile_mode != "REMOVAL")
+    )
+
+st.markdown("---")
+
+# ---- Uploader row (conditional 3 or 4 columns) ----
+if comp_profiles and profile_mode == "REMOVAL":
+    colA, colB, colC, colD = st.columns([1, 1, 1, 1])
+    with colA:
+        pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
+    with colB:
+        post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+    with colC:
+        ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref")
+    with colD:
+        st.empty()  # spacer or any extra control if you want
+else:
+    colA, colB, colC = st.columns([1, 1, 1])
+    with colA:
+        pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
+    with colB:
+        post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+    with colC:
+        # keep your existing right-side controls here if you prefer,
+        # or leave empty for symmetry
+        st.empty()
+
 
 # PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
