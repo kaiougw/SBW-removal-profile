@@ -1440,15 +1440,15 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         f"Predicted Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})")
 
                     plot_line_profile(
-                        A_c.r[:nr], Z_avg_cmp, "{graph_label(graph)} (µm)", "",
+                        A_c.r[:nr], Z_avg_cmp, f"{graph_label(graph)} (µm)", "",
                         height=520, avg=True, positive_only=True
                     )
 
                     col1, col2 = st.columns(2)
                     with col1:
-                        plot_2d(XA, YA, Zcmp_surf, "{graph_label(graph)} (µm)", A_c.Rmax, p_lo, p_hi, mask, height=420)
+                        plot_2d(XA, YA, Zcmp_surf, f"{graph_label(graph)} (µm)", A_c.Rmax, p_lo, p_hi, mask, height=420)
                     with col2:
-                        plot_3d(XA, YA, Zcmp_surf, "{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=420)
+                        plot_3d(XA, YA, Zcmp_surf, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=420)
 
                     st.markdown("---")
             else:
@@ -1497,11 +1497,11 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     col1, col2 = st.columns(2)
                     with col1:
                         rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                        plot_2d(Xcmp, Ycmp, Z_surf_cmp, "{graph_label(graph)} (µm)", rmax, p_lo, p_hi, mask)
+                        plot_2d(Xcmp, Ycmp, Z_surf_cmp, f"{graph_label(graph)} (µm)", rmax, p_lo, p_hi, mask)
                     with col2:
-                        plot_3d(Xcmp, Ycmp, Z_surf_cmp, "{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=600)
+                        plot_3d(Xcmp, Ycmp, Z_surf_cmp, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=600)
 
-                    plot_line_grid(r, theta, Z_line_cmp, "{graph_label(graph)} (µm)", nrows=2, ncols=4, height=600)
+                    plot_line_grid(r, theta, Z_line_cmp, f"{graph_label(graph)} (µm)", nrows=2, ncols=4, height=600)
 
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
@@ -1514,7 +1514,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                         line_cmp = Z_line_cmp[idx, :]
                         plot_line_profile(
-                            r, line_cmp, "{graph_label(graph)} (µm)", f"Angle {theta[idx] + 180:.1f}°",
+                            r, line_cmp, f"{graph_label(graph)} (µm)", f"Angle {theta[idx] + 180:.1f}°",
                             height=520,
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
                             rotation_deg=rotation_deg
