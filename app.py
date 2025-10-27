@@ -1273,30 +1273,27 @@ if profile_mode == "REMOVAL":
                         else:
                             plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
 
-                    if have_ref and ref_keys:
-                        # Pair REF by index with the current PRE/POST selection
-                        idx_pair = pre_keys.index(pre_slot)  # same order as zip
-                        if idx_pair < len(ref_keys):
-                            ref_slot = ref_keys[idx_pair]
-                            if ref_slot in REF_CACHE:
-                                R_c = REF_CACHE[ref_slot]
-                                R_line, _, _ = graph_arrays(R_c, graph)
-                                if R_line.size:
-                                    nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
-                                    if nr_ref > 0:
-                                        R_avg = average_profile(R_line)[:nr_ref]
-                                        Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # error = (PRE−POST)−REF
+                if have_ref and ref_keys:
+                    idx_pair = pre_keys.index(pre_slot)
+                    if idx_pair < len(ref_keys):
+                        ref_slot = ref_keys[idx_pair]
+                        if ref_slot in REF_CACHE:
+                            R_c = REF_CACHE[ref_slot]
+                            R_line, _, _ = graph_arrays(R_c, graph)
+                            if R_line.size:
+                                nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
+                                if nr_ref > 0:
+                                    R_avg = average_profile(R_line)[:nr_ref]
+                                    Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE−POST)−REF
 
-                                        XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
-                                        Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
+                                    XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
+                                    Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
 
-                                        st.subheader("Average Comparison: (PRE−POST) − REF")
-                                        # Line with overlays (removal & ref as gray on y2)
-                                        plot_line_profile(
-                                            A_c.r[:nr_ref], Z_avg_cmp, "Error (µm)", "",
-                                            height=520, avg=True, positive_only=True,
-                                            overlay_pre=Z_avg[:nr_ref], overlay_post=R_avg
-                                        )
+                                    st.subheader("Average Comparison")
+                                    # Line with overlays (removal & ref as gray on y2)
+                                    plot_line_profile(
+                                        A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
+                                        height=520, avg=True, positive_only=True)
                     st.markdown("---")
 
             if not avg_profiles: # if Average Profile is not selected
