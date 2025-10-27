@@ -1492,9 +1492,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
                     st.subheader(
-                        f"Predicted Profile\n"
-                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})"
-                    )
+                        f"Predicted Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})")
 
                     col1, col2 = st.columns(2)
                     with col1:
@@ -1510,7 +1508,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         ang_key = f"ang_cmp_{pre_slot}_{post_slot}_{base_slot}"
                         if ang_key not in st.session_state:
                             st.session_state[ang_key] = angle_options[0]
-                        ang_str = st.select_slider("Angle (Comparison)", options=angle_options, key=ang_key)
+                        ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
                         idx = angle_options.index(ang_str)
                         rotation_deg = float(ang_str.replace("°", ""))
 
