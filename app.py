@@ -1289,7 +1289,6 @@ if profile_mode == "REMOVAL":
 
                                         XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
                                         Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
-                                        stats = finite_stats(Z_avg_cmp)
 
                                         st.subheader("Average Comparison")
                                         # Line with overlays (removal & ref as gray on y2)
