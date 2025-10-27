@@ -1011,25 +1011,13 @@ with colC:
 with colD:
     comp_profiles = st.checkbox("Compare against Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
-colA, colB, colDiv, colC = st.columns([1, 1, 0.03, 1])
+colA, colB, colC= st.columns([1, 1, 1])
 with colA:
     pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
 with colB:
     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-with colDiv:
-    st.markdown(
-        """
-        <div style="
-            width: 100%;
-            height: 150px;
-        ">
-            <div style="border-left: 2px solid lightgray; height: 100%;"></div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 with colC:
-    ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref")
+    ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled=profile_mode != "REMOVAL" and not comp_profiles)
 
 
 # PRE vs POST ======================================================
@@ -1375,7 +1363,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
         plot_key = "do_plot_COMP"
 
-        col1, col2, colDiv, col3 = st.columns([1, 1, 0.03, 1])
+        col1, col2, col3 = st.columns(3)
         with col1:
             sel_pre = st.multiselect(
                 "PRE slots", pre_labels, default=None, label_visibility="hidden",
@@ -1388,18 +1376,6 @@ if profile_mode == "REMOVAL" and comp_profiles:
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
-        with colDiv:
-            st.markdown(
-                """
-                <div style="
-                    width: 100%;
-                    height: 50px;
-                ">
-                    <div style="border-left: 2px solid lightgray; height: 100%;"></div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
         with col3:
             sel_ref = st.multiselect(
                 "REF slots", ref_labels, default=None, label_visibility="hidden",
