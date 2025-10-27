@@ -1001,11 +1001,11 @@ colA, colB, colC, colD= st.columns([1, 1, 1, 1])
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
+        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="collapsed",
         format_func=lambda x: x[0]
     )[1]
 with colB:
-    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch") # (PRE | POST | REMOVAL)
+    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 with colD:
