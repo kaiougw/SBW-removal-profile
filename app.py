@@ -1369,7 +1369,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with col2:
             sel_post = st.multiselect(
-                "POST slots", post_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
+                "POST slots", post_labels, default=None, label_visibility="hidden",
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
@@ -1423,8 +1423,8 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
                     st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
-                
-                
+
+
                 if ref_slot and ref_slot in REF_CACHE:
                     R_c = REF_CACHE[ref_slot]
                     R_line, _, _ = graph_arrays(R_c, graph)
@@ -1435,7 +1435,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                             Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE-POST) - REF
                             XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
                             Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
-    
+
                             st.subheader("Average Comparison")
                             plot_line_profile(
                                 A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
