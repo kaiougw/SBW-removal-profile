@@ -1007,9 +1007,9 @@ with colA:
 with colB:
     profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"], label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
 with colC:
-    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False, width="stretch")
 with colD:
-    comp_profiles = st.checkbox("Compare against a Base Wafer", key="comp_profiles", help="Compare (PRE − POST) against BASE", value=False, disabled=profile_mode != "REMOVAL")
+    comp_profiles = st.checkbox("Compare against a Base Wafer", key="comp_profiles", help="Compare (PRE − POST) against BASE", value=False, disabled=profile_mode != "REMOVAL", width="stretch")
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
