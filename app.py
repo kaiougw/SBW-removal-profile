@@ -1393,7 +1393,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                 """
                 <div style="
                     width: 100%;
-                    height: 150px;
+                    height: 50px;
                 ">
                     <div style="border-left: 2px solid lightgray; height: 100%;"></div>
                 </div>
