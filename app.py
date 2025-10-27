@@ -1011,7 +1011,7 @@ with colC:
 with colD:
     comp_profiles = st.checkbox("Compare against Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
-colA, colB, colDiv, colC = st.columns([1, 1, 0.05, 1])
+colA, colB, colDiv, colC = st.columns([1, 1, 0.03, 1])
 with colA:
     pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
 with colB:
