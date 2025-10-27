@@ -1395,63 +1395,149 @@ if profile_mode == "REMOVAL" and comp_profiles:
             if not pre_keys or not post_keys or not ref_keys:
                 st.warning("Choose at least one slot for each.")
             n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
-            if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
+            if n_pairs == 0:
+                st.stop()
+            if len({len(pre_keys), len(post_keys), len(ref_keys)}) != 1:
                 st.info(f"Pairing first {n_pairs} slots in order.")
 
-            if avg_profiles and n_pairs > 0: # if Average Profile is selected
-                for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
-                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
+            # ---------- Average Profile mode ----------
+            if avg_profiles:
+                for pre_slot, post_slot, ref_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], ref_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
-                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+
+                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], REF_CACHE[ref_slot]
                     A_line, _, _ = graph_arrays(A_c, graph)
                     B_line, _, _ = graph_arrays(B_c, graph)
-                    if A_line.size == 0 or B_line.size == 0:
-                        st.warning("No overlapping data for removal.")
+                    R_line, _, _ = graph_arrays(R_c, graph)
+                    if A_line.size == 0 or B_line.size == 0 or R_line.size == 0:
+                        st.warning("No overlapping data for comparison.")
                         continue
 
-                    nr = min(A_line.shape[1], B_line.shape[1], A_c.r.size, B_c.r.size)
+                    nr = min(A_line.shape[1], B_line.shape[1], R_line.shape[1], A_c.r.size, B_c.r.size, R_c.r.size)
                     if nr == 0:
-                        st.warning("No overlapping data for removal.")
+                        st.warning("No overlapping data for comparison.")
                         continue
 
                     A_avg = average_profile(A_line)[:nr]
                     B_avg = average_profile(B_line)[:nr]
-                    Z_avg = A_avg - B_avg # Average PRE - Average POST
+                    R_avg = average_profile(R_line)[:nr]
 
+                    # Removal (PRE − POST)
+                    Z_avg = A_avg - B_avg
+                    # >>> Your requested sign: REF − (PRE − POST) <<<
+                    Z_avg_cmp = R_avg - Z_avg
+
+                    # Surfaces for 2D
                     XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
-                    XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
-                    ZA = np.tile(A_avg, (XA.shape[0], 1))
-                    ZB = np.tile(B_avg, (XB.shape[0], 1))
-                    XZ, YZ = XA, YA
-                    Zrem = np.tile(Z_avg, (XZ.shape[0], 1))
+                    Zcmp_surf = np.tile(Z_avg_cmp, (XA.shape[0], 1))
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    ref_lot = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('Lot', REF_DATA.get('Lot', ''))
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-                    st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
+                    ref_slotno = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('SlotNo', ref_slot)
 
+                    st.subheader(
+                        f"Average Comparison: REF − (PRE − POST)\n"
+                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {ref_lot}({ref_slotno})"
+                    )
 
-                if ref_slot and ref_slot in REF_CACHE:
-                    R_c = REF_CACHE[ref_slot]
+                    # Line: show the final delta; overlay the constituent curves for context
+                    plot_line_profile(
+                        A_c.r[:nr], Z_avg_cmp, "Delta (µm)", "",
+                        height=520, avg=True, positive_only=True,
+                        overlay_pre=Z_avg[:nr],  # removal (PRE−POST)
+                        overlay_post=R_avg  # REF
+                    )
+
+                    # 2D delta map
+                    plot_2d(XA, YA, Zcmp_surf, "Delta (µm)", A_c.Rmax, p_lo, p_hi, mask, height=420)
+
+                    st.markdown("---")
+
+            # ---------- Per-line (non-average) mode ----------
+            else:
+                for pre_slot, post_slot, ref_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], ref_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
+                        st.warning("Selected slot missing in cache.")
+                        continue
+
+                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], REF_CACHE[ref_slot]
+                    r, theta = A_c.r, A_c.theta
+                    A_line, _, _ = graph_arrays(A_c, graph)  # (nt x nr)
+                    B_line, _, _ = graph_arrays(B_c, graph)
                     R_line, _, _ = graph_arrays(R_c, graph)
-                    if R_line.size:
-                        nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
-                        if nr_ref > 0:
-                            R_avg = average_profile(R_line)[:nr_ref]
-                            Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE-POST) - REF
-                            XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
-                            Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
+                    if A_line.size == 0 or B_line.size == 0 or R_line.size == 0:
+                        st.warning("No overlapping data for comparison.")
+                        continue
 
-                            st.subheader("Average Comparison")
-                            plot_line_profile(
-                                A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
-                                height=520, avg=True, positive_only=True,
-                                overlay_pre=Z_avg[:nr_ref],  # show removal as gray
-                                overlay_post=R_avg               # show ref as gray
-                            )
+                    nt = min(A_line.shape[0], B_line.shape[0], R_line.shape[0])
+                    nr = min(A_line.shape[1], B_line.shape[1], R_line.shape[1])
+                    if nt == 0 or nr == 0:
+                        st.warning("No overlapping data for comparison.")
+                        continue
 
+                    r = r[:nr]
+                    theta = theta[:nt]
+
+                    # Removal
+                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr]
+                    # >>> Your requested sign per-line: REF − (PRE − POST) <<<
+                    Z_line_cmp = R_line[:nt, :nr] - Z_line
+
+                    # Build symmetric surface for 2D display
+                    Z_surf_cmp = np.vstack([Z_line_cmp, Z_line_cmp[:, ::-1]])
+                    theta_full = (np.concatenate([theta, theta + np.pi]) % (2 * np.pi))
+                    Tcmp, Rmcmp = np.meshgrid(theta_full, r, indexing='ij')
+                    Xcmp = Rmcmp * np.cos(Tcmp)
+                    Ycmp = Rmcmp * np.sin(Tcmp)
+
+                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
+                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    ref_lot = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('Lot', REF_DATA.get('Lot', ''))
+                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+                    ref_slotno = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('SlotNo', ref_slot)
+
+                    st.subheader(
+                        f"Comparison: REF − (PRE − POST)\n"
+                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {ref_lot}({ref_slotno})"
+                    )
+
+                    # 2D delta surface
+                    rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
+                    plot_2d(Xcmp, Ycmp, Z_surf_cmp, "Delta (µm)", rmax, p_lo, p_hi, mask)
+
+                    # Line grid of deltas
+                    plot_line_grid(r, theta, Z_line_cmp, "Delta (µm)", nrows=2, ncols=4, height=600)
+
+                    # Single-angle delta with overlays (removal and ref)
+                    if len(theta) > 0:
+                        angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
+                        ang_key = f"ang_cmp_{pre_slot}_{post_slot}_{ref_slot}"
+                        if ang_key not in st.session_state:
+                            st.session_state[ang_key] = angle_options[0]
+                        ang_str = st.select_slider("Angle (Comparison)", options=angle_options, key=ang_key)
+                        idx = angle_options.index(ang_str)
+                        rotation_deg = float(ang_str.replace("°", ""))
+
+                        line_cmp = Z_line_cmp[idx, :]
+                        removal_line = Z_line[idx, :]  # (PRE−POST)
+                        ref_line = R_line[idx, :nr]  # REF
+
+                        plot_line_profile(
+                            r, line_cmp, "Delta (µm)", f"Angle {theta[idx] + 180:.1f}°",
+                            height=520,
+                            overlay_pre=removal_line,  # show removal
+                            overlay_post=ref_line,  # show ref
+                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
+                            rotation_deg=rotation_deg
+                        )
+
+                    st.markdown("---")
 
 
 # ==================================================================
