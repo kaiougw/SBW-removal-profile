@@ -1386,7 +1386,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                 "BASE slots", base_labels, default=None, label_visibility="hidden",
                 key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
             )
-            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
+            base_keys = [base_values[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
 
         if st.button("Plot", key="plot_btn_COMP"):
             st.session_state[plot_key] = True
@@ -1423,7 +1423,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     B_avg = average_profile(B_line)[:nr]
                     R_avg = average_profile(R_line)[:nr]
 
-                    Z_avg = A_avg - B_avg # Removal (PRE − POST)
+                    Z_avg = A_avg - B_avg
                     Z_avg_cmp = R_avg - Z_avg
 
                     XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
@@ -1437,22 +1437,20 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
                     st.subheader(
-                        f"Predicted Profile\n"
-                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})"
-                    )
+                        f"Predicted Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})")
 
-                    # Line: show the final delta; overlay the constituent curves for context
                     plot_line_profile(
                         A_c.r[:nr], Z_avg_cmp, "Delta (µm)", "",
-                        height=520, avg=True, positive_only=True,
+                        height=520, avg=True, positive_only=True
                     )
 
-                    # 2D delta map
-                    plot_2d(XA, YA, Zcmp_surf, "Delta (µm)", A_c.Rmax, p_lo, p_hi, mask, height=420)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        plot_2d(XA, YA, Zcmp_surf, "Delta (µm)", A_c.Rmax, p_lo, p_hi, mask, height=420)
+                    with col2:
+                        plot_3d(XA, YA, Zcmp_surf, "Delta (µm)", p_lo, p_hi, mask, height=420)
 
                     st.markdown("---")
-
-            # ---------- Per-line (non-average) mode ----------
             else:
                 for pre_slot, post_slot, base_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], base_keys[:n_pairs]):
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or base_slot not in BASE_CACHE:
@@ -1461,8 +1459,8 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                     A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
                     r, theta = A_c.r, A_c.theta
-                    A_line, _, _ = graph_arrays(A_c, graph)  # (nt x nr)
-                    B_line, _, _ = graph_arrays(B_c, graph)
+                    A_line, A_surf, _ = graph_arrays(A_c, graph)
+                    B_line, B_surf, _ = graph_arrays(B_c, graph)
                     R_line, _, _ = graph_arrays(R_c, graph)
                     if A_line.size == 0 or B_line.size == 0 or R_line.size == 0:
                         st.warning("No overlapping data for comparison.")
@@ -1477,12 +1475,9 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     r = r[:nr]
                     theta = theta[:nt]
 
-                    # Removal
                     Z_line = A_line[:nt, :nr] - B_line[:nt, :nr]
-                    # >>> Your requested sign per-line: BASE − (PRE − POST) <<<
                     Z_line_cmp = R_line[:nt, :nr] - Z_line
 
-                    # Build symmetric surface for 2D display
                     Z_surf_cmp = np.vstack([Z_line_cmp, Z_line_cmp[:, ::-1]])
                     theta_full = (np.concatenate([theta, theta + np.pi]) % (2 * np.pi))
                     Tcmp, Rmcmp = np.meshgrid(theta_full, r, indexing='ij')
@@ -1501,14 +1496,15 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})"
                     )
 
-                    # 2D delta surface
-                    rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                    plot_2d(Xcmp, Ycmp, Z_surf_cmp, "Delta (µm)", rmax, p_lo, p_hi, mask)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
+                        plot_2d(Xcmp, Ycmp, Z_surf_cmp, "Delta (µm)", rmax, p_lo, p_hi, mask)
+                    with col2:
+                        plot_3d(Xcmp, Ycmp, Z_surf_cmp, "Delta (µm)", p_lo, p_hi, mask, height=600)
 
-                    # Line grid of deltas
                     plot_line_grid(r, theta, Z_line_cmp, "Delta (µm)", nrows=2, ncols=4, height=600)
 
-                    # Single-angle delta with overlays (removal and base)
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
                         ang_key = f"ang_cmp_{pre_slot}_{post_slot}_{base_slot}"
@@ -1519,9 +1515,6 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         rotation_deg = float(ang_str.replace("°", ""))
 
                         line_cmp = Z_line_cmp[idx, :]
-                        removal_line = Z_line[idx, :]  # (PRE−POST)
-                        base_line = R_line[idx, :nr]  # BASE
-
                         plot_line_profile(
                             r, line_cmp, "Delta (µm)", f"Angle {theta[idx] + 180:.1f}°",
                             height=520,
@@ -1530,6 +1523,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         )
 
                     st.markdown("---")
+
 
 
 # ==================================================================
