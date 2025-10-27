@@ -1449,8 +1449,6 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     plot_line_profile(
                         A_c.r[:nr], Z_avg_cmp, "Delta (µm)", "",
                         height=520, avg=True, positive_only=True,
-                        overlay_pre=Z_avg[:nr],  # removal (PRE−POST)
-                        overlay_post=R_avg  # REF
                     )
 
                     # 2D delta map
@@ -1531,8 +1529,6 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         plot_line_profile(
                             r, line_cmp, "Delta (µm)", f"Angle {theta[idx] + 180:.1f}°",
                             height=520,
-                            overlay_pre=removal_line,  # show removal
-                            overlay_post=ref_line,  # show ref
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
                             rotation_deg=rotation_deg
                         )
