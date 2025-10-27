@@ -1001,7 +1001,7 @@ colA, colB, colC, colD= st.columns([1, 1, 1, 1])
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
+        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="collapsed",
         format_func=lambda x: x[0]
     )[1]
 with colB:
