@@ -1011,14 +1011,14 @@ with colC:
 with colD:
     comp_profiles = st.checkbox("Compare against Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
-colA, colB, colDiv, colC = st.columns([1, 1, 0.05, 1])
+colA, colB, colDiv, colC = st.columns([1, 1, 0.5, 1])
 with colA:
     pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
 with colB:
     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
 with colDiv:
     st.markdown(
-        "<div style='border-left: 2px solid gray; height: 100%; margin: auto;'></div>",
+        "<div style='border-left: 2px solid lightgray; height: 100%; margin: auto;'></div>",
         unsafe_allow_html=True
     )
 with colC:
