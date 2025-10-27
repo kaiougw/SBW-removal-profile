@@ -1018,7 +1018,17 @@ with colB:
     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
 with colDiv:
     st.markdown(
-        "<div style='border-center: 10px solid lightgray; height: 100%; margin: auto;'></div>",
+        """
+        <div style="
+            width: 100%;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        ">
+            <div style="border-left: 2px solid lightgray; height: 100%;"></div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 with colC:
