@@ -997,7 +997,7 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC, colD= st.columns([1, 1, 1, 1])
+colA, colB, colC, colD= st.columns(4)
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
@@ -1350,7 +1350,30 @@ if profile_mode == "REMOVAL" and not comp_profiles:
 if profile_mode == "REMOVAL" and comp_profiles:
     if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
         st.info("Please upload all PRE, POST, and REF files.")
+    else:
+        pre_opts = slot_options(PRE_DATA)
+        post_opts = slot_options(POST_DATA)
+        ref_opts = slot_options(REF_DATA)
+        pre_labels = [l for l, _ in pre_opts]
+        pre_values = [v for _, v in pre_opts]
+        post_labels = [l for l, _ in post_opts]
+        post_values = [v for _, v in post_opts]
+        ref_labels = [l for l, _ in ref_opts]
+        ref_values = [v for _, v in ref_opts]
 
+        plot_key = "do_plot_COMP"
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            sel_pre = st.multiselect(
+                "PRE slots", pre_labels, default=None, label_visibility="hidden",
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots")
+            pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
+        with col2:
+            sel_post = st.multiselect(
+                "POST slots", post_labels, default=None, label_visibility="hidden",
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
+            post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
 
 # ==================================================================
 
