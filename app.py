@@ -844,7 +844,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     )
 
     if show_y2:
-        y2 = dict(overlaying="y", side="right", showgrid=False, title=f"{'Flatness' if match_y2 else 'Thickness'} (µm)")
+        y2 = dict(overlaying="y", side="right", showgrid=False, title=f"{'Shape' if match_y2 else 'Thickness'} (µm)")
         if match_y2:
             y2["matches"] = "y"
         fig.update_layout(yaxis2=y2)
@@ -1001,7 +1001,7 @@ colA, colB, colC, colD= st.columns([1, 1, 1, 1])
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="collapsed",
+        options=[("Thickness", "thk"), ("Shape", "flat")], label_visibility="collapsed",
         format_func=lambda x: x[0]
     )[1]
 with colB:
@@ -1013,11 +1013,11 @@ with colD:
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
-    pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
+    pre_file  = st.file_uploader("Choose a PRE file (.sbw)",  type=["sbw"], key="pre")
 with colB:
-    post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+    post_file = st.file_uploader("Choose a POST file (.sbw)", type=["sbw"], key="post")
 with colC:
-    ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled= not comp_profiles)
+    ref_file  = st.file_uploader("Choose a REF file (.sbw)",  type=["sbw"], key="ref", disabled= not comp_profiles)
 
 
 # PRE vs POST ======================================================
@@ -1063,7 +1063,7 @@ if profile_mode in ("PRE", "POST"):
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
-        plot_key = f"do_plot_{profile_mode}" 
+        plot_key = f"do_plot_{profile_mode}"
         sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots", label_visibility="hidden",
                             on_change=reset_plot, args=(plot_key,), placeholder="Choose slots")
         # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
@@ -1400,7 +1400,36 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
+                    A_c, B_c, C_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], REF_CACHE[ref_slot]
+                    r, theta = A_c.r, A_c.theta
+                    A_line, A_surf, _ = graph_arrays(A_c, graph)
+                    B_line, B_surf, _ = graph_arrays(B_c, graph)
+                    C_line, C_surf, _ = graph_arrays(C_c, graph)
+                    if A_line.size == 0 or B_line.size == 0 or C_line.size == 0:
+                        st.warning("No overlapping data for removal.")
+                        continue
+                    nt = min(A_line.shape[0], B_line.shape[0], C_line.shape[0])
+                    nr = min(A_line.shape[1], B_line.shape[1], C_line.shape[1])
+                    if nt == 0 or nr == 0:
+                        st.warning("No overlapping data for removal.")
+                        continue
 
+                    r = r[:nr]
+                    theta = theta[:nt]
+                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr] # PRE - POST
+                    Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
+                    theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
+                    T, Rm = np.meshgrid(theta_full, r, indexing='ij')
+                    X = Rm*np.cos(T)
+                    Y = Rm*np.sin(T)
+                    zlabel = 'Removal (µm)'
+
+                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
+                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+
+                    st.subheader(f"{graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
 
 
 # ==================================================================
