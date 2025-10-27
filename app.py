@@ -1284,7 +1284,7 @@ if profile_mode == "REMOVAL":
                                 nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
                                 if nr_ref > 0:
                                     R_avg = average_profile(R_line)[:nr_ref]
-                                    Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE−POST)−REF
+                                    Z_avg_cmp = R_avg - Z_avg[:nr_ref] # (PRE−POST)−REF
 
                                     XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
                                     Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
