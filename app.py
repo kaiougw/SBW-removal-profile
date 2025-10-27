@@ -1026,8 +1026,9 @@ else:
     with colB:
         post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
     with colC:
-        ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled= not comp_profiles)
+        ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled=not comp_profiles)
 
+st.markdown("---")
 
 # PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
@@ -1054,7 +1055,7 @@ if post_file is not None:
     except Exception as e:
         st.error(f"Failed to parse POST: {e}")
 
-if ref_file is not None:
+if ref_file is not None: # <<<
     try:
         REF_DATA = parsecleansbw(ref_file.read())
         REF_CACHE = cache_for_data(REF_DATA)
