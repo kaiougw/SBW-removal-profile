@@ -1161,16 +1161,23 @@ if profile_mode in ("PRE", "POST"):
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
-if profile_mode == "REMOVAL" and not comp_profiles:
+if profile_mode == "REMOVAL":
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
-        pre_labels = [l for l, _ in pre_opts]
-        pre_values = [v for _, v in pre_opts]
-        post_labels = [l for l, _ in post_opts]
-        post_values = [v for _, v in post_opts]
+        pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
+        post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
+
+        have_ref = bool(comp_profiles and REF_DATA and REF_CACHE)
+        if have_ref:
+            ref_opts = slot_options(REF_DATA)
+            ref_labels = [l for l, _ in ref_opts]; ref_values = [v for _, v in ref_opts]
+            col1, col2, col3 = st.columns(3)
+        else:
+            ref_labels = []; ref_values = []
+            col1, col2 = st.columns(2); col3 = None
 
         plot_key = "do_plot_REMOVAL"
 
@@ -1185,8 +1192,12 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                 "POST slots", post_labels, default=None, label_visibility="hidden",
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
-        with col3:
-            st.empty()
+        if col3 is not None:
+            with col3:
+                sel_ref = st.multiselect("REF slots", ref_labels, default=None, label_visibility="hidden",
+                                         key="rem_ref_slots", on_change=reset_plot, args=(plot_key,),
+                                         placeholder="Choose REF slots")
+                ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
@@ -1261,6 +1272,32 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                             plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
                             plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
+
+                    if have_ref and ref_keys:
+                        # Pair REF by index with the current PRE/POST selection
+                        idx_pair = pre_keys.index(pre_slot)  # same order as zip
+                        if idx_pair < len(ref_keys):
+                            ref_slot = ref_keys[idx_pair]
+                            if ref_slot in REF_CACHE:
+                                R_c = REF_CACHE[ref_slot]
+                                R_line, _, _ = graph_arrays(R_c, graph)
+                                if R_line.size:
+                                    nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
+                                    if nr_ref > 0:
+                                        R_avg = average_profile(R_line)[:nr_ref]
+                                        Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # error = (PRE−POST)−REF
+
+                                        XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
+                                        Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
+                                        stats = finite_stats(Z_avg_cmp)
+
+                                        st.subheader("Average Comparison")
+                                        # Line with overlays (removal & ref as gray on y2)
+                                        plot_line_profile(
+                                            A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
+                                            height=520, avg=True, positive_only=True,
+                                            overlay_pre=Z_avg[:nr_ref], overlay_post=R_avg
+                                        )
 
                     st.markdown("---")
 
@@ -1343,80 +1380,130 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
                         )
 
+                    if have_ref and ref_keys:
+                        idx_pair = pre_keys.index(pre_slot)
+                        if idx_pair < len(ref_keys):
+                            ref_slot = ref_keys[idx_pair]
+                            if ref_slot in REF_CACHE:
+                                R_c = REF_CACHE[ref_slot]
+                                R_line, _, _ = graph_arrays(R_c, graph)
+                                nt_ref, nr_ref = match_overlap_2d(Z_line, R_line)
+                                if nt_ref > 0 and nr_ref > 0:
+                                    Z_line_cmp = Z_line[:nt_ref, :nr_ref] - R_line[:nt_ref, :nr_ref]
+                                    Z_surf_cmp = np.vstack([Z_line_cmp, Z_line_cmp[:, ::-1]])
+
+                                    theta_full_cmp = (np.concatenate([theta[:nt_ref], theta[:nt_ref] + np.pi]) % (2*np.pi))
+                                    Tcmp, Rmcmp = np.meshgrid(theta_full_cmp, r[:nr_ref], indexing='ij')
+                                    Xcmp = Rmcmp * np.cos(Tcmp)
+                                    Ycmp = Rmcmp * np.sin(Tcmp)
+
+                                    st.subheader("Comparison: (PRE−POST) − REF")
+
+                                    # 2D error surface
+                                    rmax_cmp = float(np.max(r[:nr_ref][np.isfinite(r[:nr_ref])])) if np.isfinite(r[:nr_ref]).any() else 0.0
+                                    plot_2d(Xcmp, Ycmp, Z_surf_cmp, "Error (µm)", rmax_cmp, p_lo, p_hi, mask)
+
+                                    # error line grid
+                                    plot_line_grid(r[:nr_ref], theta[:nt_ref], Z_line_cmp, "Error (µm)",
+                                                   nrows=2, ncols=4, height=600)
+
+                                    # single-angle error with overlays (removal & ref)
+                                    if len(theta[:nt_ref]) > 0:
+                                        angle_options_cmp = [f"{np.degrees(a)+180:.1f}°" for a in theta[:nt_ref]]
+                                        ang_key_cmp = f"ang_cmp_{pre_slot}_{post_slot}_{ref_slot}"
+                                        if ang_key_cmp not in st.session_state:
+                                            st.session_state[ang_key_cmp] = angle_options_cmp[0]
+                                        ang_str_cmp = st.select_slider("Angle (Comparison)", options=angle_options_cmp, key=ang_key_cmp)
+                                        idx_cmp = angle_options_cmp.index(ang_str_cmp)
+
+                                        line_cmp   = Z_line_cmp[idx_cmp, :]
+                                        removal_ln = Z_line[idx_cmp, :nr_ref]
+                                        ref_ln     = R_line[idx_cmp, :nr_ref]
+                                        rotation_deg = float(ang_str_cmp.replace("°", ""))
+
+                                        plot_line_profile(
+                                            r[:nr_ref], line_cmp, "Error (µm)", f"Angle {theta[idx_cmp]+180:.1f}°",
+                                            height=520,
+                                            overlay_pre=removal_ln,
+                                            overlay_post=ref_ln,
+                                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
+                                            rotation_deg=rotation_deg
+                                        )
+
                     st.markdown("---")
 # ==================================================================
 
 
 
 # REMOVAL vs REF ===================================================
-if profile_mode == "REMOVAL" and comp_profiles:
-    if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
-        st.info("Please upload all PRE, POST, and REF files.")
-    else:
-        pre_opts = slot_options(PRE_DATA)
-        post_opts = slot_options(POST_DATA)
-        ref_opts = slot_options(REF_DATA)
-        pre_labels = [l for l, _ in pre_opts]
-        pre_values = [v for _, v in pre_opts]
-        post_labels = [l for l, _ in post_opts]
-        post_values = [v for _, v in post_opts]
-        ref_labels = [l for l, _ in ref_opts]
-        ref_values = [v for _, v in ref_opts]
-
-        plot_key = "do_plot_COMP"
-
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            sel_pre = st.multiselect(
-                "PRE slots", pre_labels, default=None, label_visibility="hidden",
-                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
-            )
-            pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
-        with col2:
-            sel_post = st.multiselect(
-                "POST slots", post_labels, default=None, label_visibility="hidden",
-                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
-            )
-            post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
-        with col3:
-            sel_ref = st.multiselect(
-                "REF slots", ref_labels, default=None, label_visibility="hidden",
-                key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
-            )
-            ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
-
-        if st.button("Plot", key="plot_btn_COMP"):
-            st.session_state[plot_key] = True
-
-        if st.session_state.get(plot_key, False):
-            if not pre_keys or not post_keys or not ref_keys:
-                st.warning("Choose at least one slot for each.")
-            n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
-            if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
-                st.info(f"Pairing first {n_pairs} slots in order.")
-
-        if comp_profiles and REF_CACHE and ref_keys:
-            ref_slot = ref_keys[min(pre_keys.index(pre_slot), len(ref_keys)-1)] if ref_keys else None
-            if ref_slot and ref_slot in REF_CACHE:
-                R_c = REF_CACHE[ref_slot]
-                R_line, _, _ = graph_arrays(R_c, graph)
-                if R_line.size:
-                    nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
-                    if nr_ref > 0:
-                        R_avg = average_profile(R_line)[:nr_ref]
-                        Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE-POST) - REF
-                        XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
-                        Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
-
-                        stats = finite_stats(Z_avg_cmp)
-
-                        st.subheader("Average Comparison")
-                        plot_line_profile(
-                            A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
-                            height=520, avg=True, positive_only=True,
-                            overlay_pre=Z_avg[:nr_ref],  # show removal as gray
-                            overlay_post=R_avg               # show ref as gray
-                        )
+# if profile_mode == "REMOVAL" and comp_profiles:
+#     if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
+#         st.info("Please upload all PRE, POST, and REF files.")
+#     else:
+#         pre_opts = slot_options(PRE_DATA)
+#         post_opts = slot_options(POST_DATA)
+#         ref_opts = slot_options(REF_DATA)
+#         pre_labels = [l for l, _ in pre_opts]
+#         pre_values = [v for _, v in pre_opts]
+#         post_labels = [l for l, _ in post_opts]
+#         post_values = [v for _, v in post_opts]
+#         ref_labels = [l for l, _ in ref_opts]
+#         ref_values = [v for _, v in ref_opts]
+#
+#         plot_key = "do_plot_COMP"
+#
+#         col1, col2, col3 = st.columns(3)
+#         with col1:
+#             sel_pre = st.multiselect(
+#                 "PRE slots", pre_labels, default=None, label_visibility="hidden",
+#                 key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
+#             )
+#             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
+#         with col2:
+#             sel_post = st.multiselect(
+#                 "POST slots", post_labels, default=None, label_visibility="hidden",
+#                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
+#             )
+#             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
+#         with col3:
+#             sel_ref = st.multiselect(
+#                 "REF slots", ref_labels, default=None, label_visibility="hidden",
+#                 key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
+#             )
+#             ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+#
+#         if st.button("Plot", key="plot_btn_COMP"):
+#             st.session_state[plot_key] = True
+#
+#         if st.session_state.get(plot_key, False):
+#             if not pre_keys or not post_keys or not ref_keys:
+#                 st.warning("Choose at least one slot for each.")
+#             n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
+#             if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
+#                 st.info(f"Pairing first {n_pairs} slots in order.")
+#
+#         if comp_profiles and REF_CACHE and ref_keys:
+#             ref_slot = ref_keys[min(pre_keys.index(pre_slot), len(ref_keys)-1)] if ref_keys else None
+#             if ref_slot and ref_slot in REF_CACHE:
+#                 R_c = REF_CACHE[ref_slot]
+#                 R_line, _, _ = graph_arrays(R_c, graph)
+#                 if R_line.size:
+#                     nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
+#                     if nr_ref > 0:
+#                         R_avg = average_profile(R_line)[:nr_ref]
+#                         Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE-POST) - REF
+#                         XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
+#                         Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
+#
+#                         stats = finite_stats(Z_avg_cmp)
+#
+#                         st.subheader("Average Comparison")
+#                         plot_line_profile(
+#                             A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
+#                             height=520, avg=True, positive_only=True,
+#                             overlay_pre=Z_avg[:nr_ref],  # show removal as gray
+#                             overlay_post=R_avg               # show ref as gray
+#                         )
 
 
 
