@@ -1289,7 +1289,15 @@ if profile_mode == "REMOVAL":
                                     XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
                                     Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
 
-                                    st.subheader("Average Comparison")
+                                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot',''))
+                                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot',POST_DATA.get('Lot', ''))
+                                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo',post_slot)
+                                    ref_lot = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('Lot', REF_DATA.get('Lot',''))
+                                    ref_slotno = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('SlotNo',ref_slot)
+
+                                    st.subheader("Average Comparison\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}) - {ref_lot}({ref_slotno})")
+                                    
                                     # Line with overlays (removal & ref as gray on y2)
                                     plot_line_profile(
                                         A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
