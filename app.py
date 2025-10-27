@@ -1001,15 +1001,15 @@ colA, colB, colC, colD= st.columns([1, 1, 1, 1])
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="collapsed",
+        options=[("Thickness", "thk"), ("Flatness", "flat")], label_visibility="hidden",
         format_func=lambda x: x[0]
     )[1]
 with colB:
-    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
+    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="hidden", width="stretch") # (PRE | POST | REMOVAL)
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 with colD:
-    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare the removal profile with reference", value=False, disabled=profile_mode != "REMOVAL")
+    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare (PRE-POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
 if comp_profiles and profile_mode == "REMOVAL":
     colA, colB, colC= st.columns([1, 1, 1])
@@ -1031,7 +1031,6 @@ else:
 
 # PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
-# show_prepost_3d = False
 overlay_prepost_lines = False
 if profile_mode == "REMOVAL":
     with st.sidebar:
