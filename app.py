@@ -1395,41 +1395,29 @@ if profile_mode == "REMOVAL" and comp_profiles:
             if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
                 st.info(f"Pairing first {n_pairs} slots in order.")
 
-            if avg_profiles and n_pairs > 0:
-                for pre_slot, post_slot, ref_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], ref_keys[:n_pairs]):
-                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
-                        st.warning("Selected slot missing in cache.")
-                        continue
-                    A_c, B_c, C_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], REF_CACHE[ref_slot]
-                    r, theta = A_c.r, A_c.theta
-                    A_line, A_surf, _ = graph_arrays(A_c, graph)
-                    B_line, B_surf, _ = graph_arrays(B_c, graph)
-                    C_line, C_surf, _ = graph_arrays(C_c, graph)
-                    if A_line.size == 0 or B_line.size == 0 or C_line.size == 0:
-                        st.warning("No overlapping data for removal.")
-                        continue
-                    nt = min(A_line.shape[0], B_line.shape[0], C_line.shape[0])
-                    nr = min(A_line.shape[1], B_line.shape[1], C_line.shape[1])
-                    if nt == 0 or nr == 0:
-                        st.warning("No overlapping data for removal.")
-                        continue
+        if comp_profiles and REF_CACHE and ref_keys:
+            ref_slot = ref_keys[min(pre_keys.index(pre_slot), len(ref_keys)-1)] if ref_keys else None
+            if ref_slot and ref_slot in REF_CACHE:
+                R_c = REF_CACHE[ref_slot]
+                R_line, _, _ = graph_arrays(R_c, graph)
+                if R_line.size:
+                    nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
+                    if nr_ref > 0:
+                        R_avg = average_profile(R_line)[:nr_ref]
+                        Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE-POST) - REF
+                        XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
+                        Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
 
-                    r = r[:nr]
-                    theta = theta[:nt]
-                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr] # PRE - POST
-                    Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
-                    theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
-                    T, Rm = np.meshgrid(theta_full, r, indexing='ij')
-                    X = Rm*np.cos(T)
-                    Y = Rm*np.sin(T)
-                    zlabel = 'Removal (µm)'
+                        stats = finite_stats(Z_avg_cmp)
 
-                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
-                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
-                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
-                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+                        st.subheader("Average Comparison")
+                        plot_line_profile(
+                            A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
+                            height=520, avg=True, positive_only=True,
+                            overlay_pre=Z_avg[:nr_ref],  # show removal as gray
+                            overlay_post=R_avg               # show ref as gray
+                        )
 
-                    st.subheader(f"{graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
 
 
 # ==================================================================
