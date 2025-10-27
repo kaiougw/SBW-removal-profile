@@ -514,7 +514,7 @@ def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data 
         - label: str
             Axis label string ("Flatness (µm)" or "Thickness (µm)").
     """
-    return (c.Flat, c.Flat_mir, 'Flatness (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
+    return (c.Flat, c.Flat_mir, 'Shape (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
 def graph_label(graph: str, prefix: str = "") -> str:
     """
@@ -532,7 +532,7 @@ def graph_label(graph: str, prefix: str = "") -> str:
     str
         Label string ("Flatness", "Thickness", or with prefix, e.g., "PRE Flatness").
     """
-    base = "Flatness" if graph == "flat" else "Thickness"
+    base = "Shape" if graph == "flat" else "Thickness"
     if prefix:
         return f"{prefix} {base}"
     return f"{base}"
