@@ -1188,11 +1188,11 @@ if profile_mode == "REMOVAL" and not comp_profiles:
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
         with col3:
-            sel_ref = st.multiselect(
-                "REF slots", base_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
-                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
+            sel_base = st.multiselect(
+                "BASE slots", base_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
+                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
             )
-            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
@@ -1354,7 +1354,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
 
 
 
-# REMOVAL vs REF ===================================================
+# REMOVAL vs BASE ===================================================
 if profile_mode == "REMOVAL" and comp_profiles:
     if not (PRE_DATA and POST_DATA and BASE_DATA and PRE_CACHE and POST_CACHE and BASE_CACHE):
         st.info("Please upload all PRE, POST, and BASE files.")
@@ -1382,11 +1382,11 @@ if profile_mode == "REMOVAL" and comp_profiles:
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
         with col3:
-            sel_ref = st.multiselect(
+            sel_base = st.multiselect(
                 "BASE slots", base_labels, default=None, label_visibility="hidden",
                 key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
             )
-            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
 
         if st.button("Plot", key="plot_btn_COMP"):
             st.session_state[plot_key] = True
@@ -1479,7 +1479,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                     # Removal
                     Z_line = A_line[:nt, :nr] - B_line[:nt, :nr]
-                    # >>> Your requested sign per-line: REF − (PRE − POST) <<<
+                    # >>> Your requested sign per-line: BASE − (PRE − POST) <<<
                     Z_line_cmp = R_line[:nt, :nr] - Z_line
 
                     # Build symmetric surface for 2D display
@@ -1497,7 +1497,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
                     st.subheader(
-                        f"Comparison: REF − (PRE − POST)\n"
+                        f"Predicted Profile\n"
                         f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})"
                     )
 
@@ -1508,7 +1508,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     # Line grid of deltas
                     plot_line_grid(r, theta, Z_line_cmp, "Delta (µm)", nrows=2, ncols=4, height=600)
 
-                    # Single-angle delta with overlays (removal and ref)
+                    # Single-angle delta with overlays (removal and base)
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
                         ang_key = f"ang_cmp_{pre_slot}_{post_slot}_{base_slot}"
@@ -1520,7 +1520,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                         line_cmp = Z_line_cmp[idx, :]
                         removal_line = Z_line[idx, :]  # (PRE−POST)
-                        ref_line = R_line[idx, :nr]  # REF
+                        base_line = R_line[idx, :nr]  # BASE
 
                         plot_line_profile(
                             r, line_cmp, "Delta (µm)", f"Angle {theta[idx] + 180:.1f}°",
