@@ -1375,7 +1375,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
         plot_key = "do_plot_COMP"
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, colDiv, col3 = st.columns([1, 1, 0.03, 1])
         with col1:
             sel_pre = st.multiselect(
                 "PRE slots", pre_labels, default=None, label_visibility="hidden",
