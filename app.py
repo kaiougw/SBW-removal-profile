@@ -1017,7 +1017,7 @@ with colA:
 with colB:
     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
 with colC:
-    ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled=profile_mode != "REMOVAL" and not comp_profiles)
+    ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled= not comp_profiles)
 
 
 # PRE vs POST ======================================================
