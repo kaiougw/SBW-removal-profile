@@ -1012,7 +1012,7 @@ with colD:
     comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare the removal profile with reference", value=False, disabled=profile_mode != "REMOVAL")
 
 if comp_profiles and profile_mode == "REMOVAL":
-    colA, colB, colC, colD = st.columns([1, 1, 1])
+    colA, colB, colC= st.columns([1, 1, 1])
     with colA:
         pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
     with colB:
