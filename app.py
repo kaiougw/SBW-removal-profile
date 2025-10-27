@@ -1009,7 +1009,7 @@ with colB:
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 with colD:
-    comp_profiles = st.checkbox("Compare against a Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
+    comp_profiles = st.checkbox("Compare against a Base Wafer", key="comp_profiles", help="Compare (PRE − POST) against BASE", value=False, disabled=profile_mode != "REMOVAL")
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
@@ -1017,7 +1017,7 @@ with colA:
 with colB:
     post_file = st.file_uploader("Choose a POST file (.sbw)", type=["sbw"], key="post")
 with colC:
-    ref_file  = st.file_uploader("Choose a REF file (.sbw)",  type=["sbw"], key="ref", disabled= not comp_profiles)
+    base_file  = st.file_uploader("Choose a BASE file (.sbw)",  type=["sbw"], key="base", disabled= not comp_profiles)
 
 
 # PRE vs POST ======================================================
@@ -1028,8 +1028,8 @@ if profile_mode == "REMOVAL":
         # show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
         overlay_prepost_lines = st.checkbox("Overlay line charts", value=False)
 
-PRE_DATA = POST_DATA = REF_DATA = None
-PRE_CACHE = POST_CACHE = REF_CACHE = None
+PRE_DATA = POST_DATA = BASE_DATA = None
+PRE_CACHE = POST_CACHE = BASE_CACHE = None
 
 if pre_file is not None:
     try:
@@ -1045,12 +1045,12 @@ if post_file is not None:
     except Exception as e:
         st.error(f"Failed to parse POST: {e}")
 
-if ref_file is not None:
+if base_file is not None:
     try:
-        REF_DATA = parsecleansbw(ref_file.read())
-        REF_CACHE = cache_for_data(REF_DATA)
+        BASE_DATA = parsecleansbw(base_file.read())
+        BASE_CACHE = cache_for_data(BASE_DATA)
     except Exception as e:
-        st.error(f"Failed to parse REF: {e}")
+        st.error(f"Failed to parse BASE: {e}")
 
 
 # profile_mode == PRE or POST:
@@ -1167,12 +1167,12 @@ if profile_mode == "REMOVAL" and not comp_profiles:
     else:
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
-        ref_opts = slot_options(REF_DATA)
+        base_opts = slot_options(BASE_DATA)
         pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
         post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
-        ref_labels = [l for l, _ in ref_opts]; ref_values = [v for _, v in ref_opts]
+        base_labels = [l for l, _ in base_opts]; base_labels = [v for _, v in base_opts]
 
-        plot_key = "do_plot_COMP"
+        plot_key = "do_plot_REMOVAL"
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -1189,10 +1189,10 @@ if profile_mode == "REMOVAL" and not comp_profiles:
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
         with col3:
             sel_ref = st.multiselect(
-                "REF slots", ref_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
-                key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
+                "REF slots", base_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
+                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
             )
-            ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
@@ -1356,17 +1356,17 @@ if profile_mode == "REMOVAL" and not comp_profiles:
 
 # REMOVAL vs REF ===================================================
 if profile_mode == "REMOVAL" and comp_profiles:
-    if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
-        st.info("Please upload all PRE, POST, and REF files.")
+    if not (PRE_DATA and POST_DATA and BASE_DATA and PRE_CACHE and POST_CACHE and BASE_CACHE):
+        st.info("Please upload all PRE, POST, and BASE files.")
     else:
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
-        ref_opts = slot_options(REF_DATA)
+        base_opts = slot_options(BASE_DATA)
         pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
         post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
-        ref_labels = [l for l, _ in ref_opts]; ref_values = [v for _, v in ref_opts]
+        base_labels = [l for l, _ in base_opts]; base_values = [v for _, v in base_opts]
 
-        plot_key = "do_plot_COMP"
+        plot_key = "do_plot_PREDICTED"
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -1383,31 +1383,30 @@ if profile_mode == "REMOVAL" and comp_profiles:
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
         with col3:
             sel_ref = st.multiselect(
-                "REF slots", ref_labels, default=None, label_visibility="hidden",
-                key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
+                "BASE slots", base_labels, default=None, label_visibility="hidden",
+                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
             )
-            ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
 
         if st.button("Plot", key="plot_btn_COMP"):
             st.session_state[plot_key] = True
 
         if st.session_state.get(plot_key, False):
-            if not pre_keys or not post_keys or not ref_keys:
+            if not pre_keys or not post_keys or not base_keys:
                 st.warning("Choose at least one slot for each.")
-            n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
+            n_pairs = min(len(pre_keys), len(post_keys), len(base_keys))
             if n_pairs == 0:
                 st.stop()
-            if len({len(pre_keys), len(post_keys), len(ref_keys)}) != 1:
+            if len({len(pre_keys), len(post_keys), len(base_keys)}) != 1:
                 st.info(f"Pairing first {n_pairs} slots in order.")
 
-            # ---------- Average Profile mode ----------
             if avg_profiles:
-                for pre_slot, post_slot, ref_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], ref_keys[:n_pairs]):
-                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
+                for pre_slot, post_slot, base_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], base_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or base_slot not in BASE_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
 
-                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], REF_CACHE[ref_slot]
+                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
                     A_line, _, _ = graph_arrays(A_c, graph)
                     B_line, _, _ = graph_arrays(B_c, graph)
                     R_line, _, _ = graph_arrays(R_c, graph)
@@ -1424,25 +1423,22 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     B_avg = average_profile(B_line)[:nr]
                     R_avg = average_profile(R_line)[:nr]
 
-                    # Removal (PRE − POST)
-                    Z_avg = A_avg - B_avg
-                    # >>> Your requested sign: REF − (PRE − POST) <<<
+                    Z_avg = A_avg - B_avg # Removal (PRE − POST)
                     Z_avg_cmp = R_avg - Z_avg
 
-                    # Surfaces for 2D
                     XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
                     Zcmp_surf = np.tile(Z_avg_cmp, (XA.shape[0], 1))
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
-                    ref_lot = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('Lot', REF_DATA.get('Lot', ''))
+                    base_lot = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('Lot', BASE_DATA.get('Lot', ''))
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-                    ref_slotno = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('SlotNo', ref_slot)
+                    base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
                     st.subheader(
-                        f"Average Comparison: REF − (PRE − POST)\n"
-                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {ref_lot}({ref_slotno})"
+                        f"Predicted Profile\n"
+                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})"
                     )
 
                     # Line: show the final delta; overlay the constituent curves for context
@@ -1458,12 +1454,12 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
             # ---------- Per-line (non-average) mode ----------
             else:
-                for pre_slot, post_slot, ref_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], ref_keys[:n_pairs]):
-                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
+                for pre_slot, post_slot, base_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], base_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or base_slot not in BASE_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
 
-                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], REF_CACHE[ref_slot]
+                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
                     r, theta = A_c.r, A_c.theta
                     A_line, _, _ = graph_arrays(A_c, graph)  # (nt x nr)
                     B_line, _, _ = graph_arrays(B_c, graph)
@@ -1495,14 +1491,14 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
-                    ref_lot = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('Lot', REF_DATA.get('Lot', ''))
+                    base_lot = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('Lot', BASE_DATA.get('Lot', ''))
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-                    ref_slotno = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('SlotNo', ref_slot)
+                    base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
                     st.subheader(
                         f"Comparison: REF − (PRE − POST)\n"
-                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {ref_lot}({ref_slotno})"
+                        f"{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})"
                     )
 
                     # 2D delta surface
@@ -1515,7 +1511,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     # Single-angle delta with overlays (removal and ref)
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
-                        ang_key = f"ang_cmp_{pre_slot}_{post_slot}_{ref_slot}"
+                        ang_key = f"ang_cmp_{pre_slot}_{post_slot}_{base_slot}"
                         if ang_key not in st.session_state:
                             st.session_state[ang_key] = angle_options[0]
                         ang_str = st.select_slider("Angle (Comparison)", options=angle_options, key=ang_key)
