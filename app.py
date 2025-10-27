@@ -1011,22 +1011,14 @@ with colC:
 with colD:
     comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
-if comp_profiles and profile_mode == "REMOVAL":
-    colA, colB, colC= st.columns([1, 1, 1])
-    with colA:
-        pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
-    with colB:
-        post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-    with colC:
-        ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref")
-else:
-    colA, colB, colC = st.columns([1, 1, 1])
-    with colA:
-        pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
-    with colB:
-        post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
-    with colC:
-        ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled=not comp_profiles)
+
+colA, colB, colC= st.columns([1, 1, 1])
+with colA:
+    pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
+with colB:
+    post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+with colC:
+    ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref")
 
 # st.markdown("---")
 
@@ -1074,7 +1066,7 @@ if profile_mode in ("PRE", "POST"):
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
         plot_key = f"do_plot_{profile_mode}" 
-        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots", label_visibility="collapsed",
+        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots", label_visibility="hidden",
                             on_change=reset_plot, args=(plot_key,), placeholder="Choose slots")
         # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
         # arg=(plot_key,) passes `plot_key=f"do_plot_{profile_mode}"` as the argument to `reset_plot`.
@@ -1187,12 +1179,12 @@ else:
         col1, col2 = st.columns(2)
         with col1:
             sel_pre = st.multiselect(
-                "PRE slots", pre_labels, default=None, label_visibility="collapsed",
+                "PRE slots", pre_labels, default=None, label_visibility="hidden",
                 key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots")
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with col2:
             sel_post = st.multiselect(
-                "POST slots", post_labels, default=None, label_visibility="collapsed",
+                "POST slots", post_labels, default=None, label_visibility="hidden",
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
 
