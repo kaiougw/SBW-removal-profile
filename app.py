@@ -1005,7 +1005,7 @@ with colA:
         format_func=lambda x: x[0]
     )[1]
 with colB:
-    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
+    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"], label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 with colD:
@@ -1026,7 +1026,7 @@ else:
     with colB:
         post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
     with colC:
-        st.empty()
+        ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled= not comp_profiles)
 
 
 # PRE vs POST ======================================================
@@ -1358,7 +1358,7 @@ else:
 
 
 # REMOVAL vs REF ===================================================
-if profile_mode in "REMOVAL" and comp_profiles:
+if profile_mode == "REMOVAL" and comp_profiles:
     if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
         st.info("Please upload all PRE, POST, and REF files.")
 
