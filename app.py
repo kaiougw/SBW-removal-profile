@@ -997,7 +997,7 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC, colD= st.columns([1, 1, 1, 1]) # <<<
+colA, colB, colC, colD= st.columns([1, 1, 1, 1])
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
@@ -1074,8 +1074,8 @@ if profile_mode in ("PRE", "POST"):
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
         plot_key = f"do_plot_{profile_mode}" 
-        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
-                            on_change=reset_plot, args=(plot_key,))
+        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots", label_visibility="collapsed",
+                            on_change=reset_plot, args=(plot_key,), placeholder="Choose slots")
         # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
         # arg=(plot_key,) passes `plot_key=f"do_plot_{profile_mode}"` as the argument to `reset_plot`.
         #>>> "When Slots are changed, run `reset_plot` function and set st.session_state[plot_key]=False."
@@ -1187,15 +1187,13 @@ else:
         col1, col2 = st.columns(2)
         with col1:
             sel_pre = st.multiselect(
-                "PRE slots", pre_labels, default=None,
-                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,)
-            )
+                "PRE slots", pre_labels, default=None, label_visibility="collapsed",
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots")
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with col2:
             sel_post = st.multiselect(
-                "POST slots", post_labels, default=None,
-                key="rem_post_slots", on_change=reset_plot, args=(plot_key,)
-            )
+                "POST slots", post_labels, default=None, label_visibility="collapsed",
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
