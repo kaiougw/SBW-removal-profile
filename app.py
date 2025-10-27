@@ -1011,11 +1011,16 @@ with colC:
 with colD:
     comp_profiles = st.checkbox("Compare against Reference", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
-colA, colB, colC= st.columns([1, 1, 1])
+colA, colB, colDiv, colC = st.columns([1, 1, 0.05, 1])
 with colA:
     pre_file  = st.file_uploader("Choose a PRE SBW file (.sbw)",  type=["sbw"], key="pre")
 with colB:
     post_file = st.file_uploader("Choose a POST SBW file (.sbw)", type=["sbw"], key="post")
+with colDiv:
+    st.markdown(
+        "<div style='border-left: 2px solid lightgray; height: 100%; margin: auto;'></div>",
+        unsafe_allow_html=True
+    )
 with colC:
     ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref")
 
@@ -1382,7 +1387,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                 key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
             )
             ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
-        
+
         if st.button("Plot", key="plot_btn_COMP"):
             st.session_state[plot_key] = True
 
@@ -1392,7 +1397,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
             n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
             if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
                 st.info(f"Pairing first {n_pairs} slots in order.")
-                
+
             if avg_profiles and n_pairs > 0:
                 for pre_slot, post_slot, ref_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], ref_keys[:n_pairs]):
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
