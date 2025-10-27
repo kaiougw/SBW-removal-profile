@@ -1388,6 +1388,18 @@ if profile_mode == "REMOVAL" and comp_profiles:
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
+        with colDiv:
+            st.markdown(
+                """
+                <div style="
+                    width: 100%;
+                    height: 150px;
+                ">
+                    <div style="border-left: 2px solid lightgray; height: 100%;"></div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         with col3:
             sel_ref = st.multiselect(
                 "REF slots", ref_labels, default=None, label_visibility="hidden",
