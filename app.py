@@ -88,12 +88,12 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
     np.ndarray
         1D array of length n_radii containing the averaged profile across all lines and their mirrored halves.
     """
-    Z_line = np.asarray(Z_line, dtype=float) 
+    Z_line = np.asarray(Z_line, dtype=float)
     if Z_line.size == 0:
         return np.array([])
     Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # stacks original (+r) and mirrored (-r) arrays vertically, for which average is returned
     with np.errstate(all='ignore'):
-        return np.nanmean(Z_full, axis=0) 
+        return np.nanmean(Z_full, axis=0)
 
 # SBW File Parsing and Cleaning
 class sbwinfo(object):
@@ -228,7 +228,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
     ---
     sbwfile: sbwinfo (from `parsesbw`)
         Parsed SBW file object containing lot and wafer data.
-    
+
     Output
     ---
     dict
@@ -301,7 +301,7 @@ def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
             pass
 
 # Wafer Matrix & Slot Caching
-def Thkmatrix(wafer): 
+def Thkmatrix(wafer):
     """
     Build 2D thickness matrix with rows = Angle, columns = Radius.
 
@@ -316,7 +316,7 @@ def Thkmatrix(wafer):
             [:,1] = Flatness values (ignored in this function)
 
     Output
-    --- 
+    ---
     r: np.ndarray
         1D array of radii, shape (n_radius,).
     theta: np.ndarray
@@ -350,10 +350,10 @@ def Flatmatrix(wafer):
         - "Angle": list of float
         - "Profiles": list of 2D arrays, each with columns
             [:,0] = Thickness values (ignored in this function)
-            [:,1] = Flatness values 
+            [:,1] = Flatness values
 
     Output
-    --- 
+    ---
     r: np.ndarray
         1D array of radii, shape (n_radius,).
     theta: np.ndarray
@@ -491,7 +491,7 @@ def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
 
 
 # Plot Utilities
-def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data needed for line charts or 2D plots. 
+def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data needed for line charts or 2D plots.
     """
     Select thickness or flatness arrays from SlotCache.
 
@@ -569,7 +569,7 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
         vmax = vmin + 1e-9 # forces vmin >= vmin to avoid crash
     return np.clip(Z, vmin, vmax), vmin, vmax # clip() limits Z to values within range (vmin, vmax)
 
-def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4 
+def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     """
     Mask notch (outliers) in array using Median Absolute Deviation (MAD).
     Any value further than k*MAD from median is replaced with NaN.
@@ -747,7 +747,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         height: int
         overlay_pre, overlay_post: np.ndarray or None
             None by default
-        avg: 
+        avg:
             True if Average Profile checkbox checked
         waferimg: str or None
             Wafer image
@@ -793,7 +793,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             ov_max = 0.0
         ratio = (ov_max / rem_max) if rem_max > 0 else np.inf
         match_y2 = (ratio <= 5.0)
-    
+
     # overlay PRE
     if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
         y_pre = np.asarray(overlay_pre, dtype=float)
@@ -886,12 +886,12 @@ def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel:
             2D array (n_theta, n_radii)
         zlabel: str
             y-axis label
-        nrows, ncols: 
+        nrows, ncols:
             subplot grid size
         height: int
         overlay_pre, overlay_post: np.ndarray or None
             optional PRE/POST overlays
-        avg: 
+        avg:
             True if Average Profile selected
     Output:
         Line charts in Streamlit
@@ -982,7 +982,7 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     wafers = data.get('WaferData', {}) or {}
     for k in sort_keys(wafers): # sort_keys used so that keys are interpreted as numbers and sorted numerically.
         ref = wafers.get(k, {}) or {} # ref = dict of wafer info for a specific slot.
-        disp.append((f"Slot {ref.get('SlotNo', k)}", k)) 
+        disp.append((f"Slot {ref.get('SlotNo', k)}", k))
     return disp
 
 # UI
@@ -1167,24 +1167,32 @@ if profile_mode == "REMOVAL" and not comp_profiles:
     else:
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
+        ref_opts = slot_options(REF_DATA)
         pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
         post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
+        ref_labels = [l for l, _ in ref_opts]; ref_values = [v for _, v in ref_opts]
 
-        plot_key = "do_plot_REMOVAL"
+        plot_key = "do_plot_COMP"
 
         col1, col2, col3 = st.columns(3)
         with col1:
             sel_pre = st.multiselect(
                 "PRE slots", pre_labels, default=None, label_visibility="hidden",
-                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots")
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
+            )
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with col2:
             sel_post = st.multiselect(
                 "POST slots", post_labels, default=None, label_visibility="hidden",
-                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
+            )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
         with col3:
-            st.empty()
+            sel_ref = st.multiselect(
+                "REF slots", ref_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
+                key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
+            )
+            ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
@@ -1195,7 +1203,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
             n_pairs = min(len(pre_keys), len(post_keys))
             if len(pre_keys) != len(post_keys) and n_pairs > 0:
                 st.info(f"Pairing first {n_pairs} slots in order.")
-            
+
             if avg_profiles and n_pairs > 0: # if Average Profile is selected
                 for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
@@ -1375,7 +1383,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
         with col3:
             sel_ref = st.multiselect(
-                "REF slots", ref_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
+                "REF slots", ref_labels, default=None, label_visibility="hidden",
                 key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
             )
             ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
