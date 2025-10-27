@@ -1375,7 +1375,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
         with col3:
             sel_ref = st.multiselect(
-                "REF slots", ref_labels, default=None, label_visibility="hidden",
+                "REF slots", ref_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
                 key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
             )
             ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
