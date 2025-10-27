@@ -1023,7 +1023,6 @@ with colDiv:
             width: 100%;
             height: 150px;
             display: flex;
-            justify-content: center;
         ">
             <div style="border-left: 2px solid lightgray; height: 100%;"></div>
         </div>
