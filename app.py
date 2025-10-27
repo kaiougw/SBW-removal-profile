@@ -1359,7 +1359,7 @@ else:
 
 # REMOVAL vs REF ===================================================
 if profile_mode in "REMOVAL" and comp_profiles:
-    if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
+    if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
         st.info("Please upload all PRE, POST, and REF files.")
 
 
