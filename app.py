@@ -1028,7 +1028,7 @@ else:
     with colC:
         ref_file  = st.file_uploader("Choose a REF SBW file (.sbw)",  type=["sbw"], key="ref", disabled=not comp_profiles)
 
-st.markdown("---")
+# st.markdown("---")
 
 # PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
