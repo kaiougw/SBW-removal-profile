@@ -1196,7 +1196,7 @@ if profile_mode == "REMOVAL":
             with col3:
                 sel_ref = st.multiselect("REF slots", ref_labels, default=None, label_visibility="hidden",
                                          key="rem_ref_slots", on_change=reset_plot, args=(plot_key,),
-                                         placeholder="Choose REF slots", disabled=not comp_profile)
+                                         placeholder="Choose REF slots", disabled=not comp_profiles)
                 ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
@@ -1289,7 +1289,6 @@ if profile_mode == "REMOVAL":
 
                                         XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
                                         Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
-                                        stats = finite_stats(Z_avg_cmp)
 
                                         st.subheader("Average Comparison: (PRE−POST) − REF")
                                         # Line with overlays (removal & ref as gray on y2)
