@@ -1161,7 +1161,7 @@ if profile_mode in ("PRE", "POST"):
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
-if profile_mode == "REMOVAL":
+if profile_mode == "REMOVAL" and not comp_profiles:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
