@@ -997,7 +997,7 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC, colD= st.columns([1, 1, 1, 1])
+colA, colB, colC, colD= st.columns([1, 1, 1, 1]) # <<<
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
@@ -1009,7 +1009,7 @@ with colB:
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
 with colD:
-    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare (PRE-POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
+    comp_profiles = st.checkbox("Compare Profiles", key="comp_profiles", help="Compare (PRE − POST) against REF", value=False, disabled=profile_mode != "REMOVAL")
 
 if comp_profiles and profile_mode == "REMOVAL":
     colA, colB, colC= st.columns([1, 1, 1])
@@ -1037,14 +1037,13 @@ if profile_mode == "REMOVAL":
         # show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
         overlay_prepost_lines = st.checkbox("Overlay line charts", value=False)
 
-PRE_DATA = POST_DATA = None
-PRE_CACHE = POST_CACHE = None
+PRE_DATA = POST_DATA = REF_DATA = None
+PRE_CACHE = POST_CACHE = REF_CACHE = None
 
 if pre_file is not None:
     try:
         PRE_DATA = parsecleansbw(pre_file.read())
         PRE_CACHE = cache_for_data(PRE_DATA)
-        st.success(f"Loaded {PRE_DATA.get('Lot', '')}")
     except Exception as e:
         st.error(f"Failed to parse PRE: {e}")
 
@@ -1052,11 +1051,16 @@ if post_file is not None:
     try:
         POST_DATA = parsecleansbw(post_file.read())
         POST_CACHE = cache_for_data(POST_DATA)
-        st.success(f"Loaded {POST_DATA.get('Lot', '')}")
     except Exception as e:
         st.error(f"Failed to parse POST: {e}")
 
-st.markdown("---")
+if ref_file is not None:
+    try:
+        REF_DATA = parsecleansbw(ref_file.read())
+        POST_CACHE = cache_for_data(REF_DATA)
+    except Exception as e:
+        st.error(f"Failed to parse REF: {e}")
+
 
 # profile_mode == PRE or POST:
 if profile_mode in ("PRE", "POST"):
@@ -1353,8 +1357,10 @@ else:
 
 
 
-# REMOVAL vs  ==================================================
-
+# REMOVAL vs REF ===================================================
+if profile_mode in "REMOVAL" and comp_profiles:
+    if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
+        st.info("Please upload all PRE, POST, and REF files.")
 
 
 # ==================================================================
