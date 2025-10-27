@@ -1170,15 +1170,6 @@ if profile_mode == "REMOVAL":
         pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
         post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
 
-        have_ref = bool(comp_profiles and REF_DATA and REF_CACHE)
-        if have_ref:
-            ref_opts = slot_options(REF_DATA)
-            ref_labels = [l for l, _ in ref_opts]; ref_values = [v for _, v in ref_opts]
-            col1, col2, col3 = st.columns(3)
-        else:
-            ref_labels = []; ref_values = []
-            col1, col2 = st.columns(2); col3 = None
-
         plot_key = "do_plot_REMOVAL"
 
         col1, col2, col3 = st.columns(3)
@@ -1192,12 +1183,8 @@ if profile_mode == "REMOVAL":
                 "POST slots", post_labels, default=None, label_visibility="hidden",
                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
-        if col3 is not None:
-            with col3:
-                sel_ref = st.multiselect("REF slots", ref_labels, default=None, label_visibility="hidden",
-                                         key="rem_ref_slots", on_change=reset_plot, args=(plot_key,),
-                                         placeholder="Choose REF slots", disabled=not comp_profiles)
-                ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+        with col3:
+            st.empty()
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
@@ -1273,35 +1260,6 @@ if profile_mode == "REMOVAL":
                         else:
                             plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
 
-                if have_ref and ref_keys:
-                    idx_pair = pre_keys.index(pre_slot)
-                    if idx_pair < len(ref_keys):
-                        ref_slot = ref_keys[idx_pair]
-                        if ref_slot in REF_CACHE:
-                            R_c = REF_CACHE[ref_slot]
-                            R_line, _, _ = graph_arrays(R_c, graph)
-                            if R_line.size:
-                                nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
-                                if nr_ref > 0:
-                                    R_avg = average_profile(R_line)[:nr_ref]
-                                    Z_avg_cmp = R_avg - Z_avg[:nr_ref] # (PRE−POST)−REF
-
-                                    XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
-                                    Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
-
-                                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot',''))
-                                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot',POST_DATA.get('Lot', ''))
-                                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
-                                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo',post_slot)
-                                    ref_lot = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('Lot', REF_DATA.get('Lot',''))
-                                    ref_slotno = REF_DATA.get('WaferData', {}).get(ref_slot, {}).get('SlotNo',ref_slot)
-
-                                    st.subheader("Average Comparison\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}) - {ref_lot}({ref_slotno})")
-                                    
-                                    # Line with overlays (removal & ref as gray on y2)
-                                    plot_line_profile(
-                                        A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
-                                        height=520, avg=True, positive_only=True)
                     st.markdown("---")
 
             if not avg_profiles: # if Average Profile is not selected
@@ -1389,102 +1347,102 @@ if profile_mode == "REMOVAL":
 
 
 # REMOVAL vs REF ===================================================
-# if profile_mode == "REMOVAL" and comp_profiles:
-#     if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
-#         st.info("Please upload all PRE, POST, and REF files.")
-#     else:
-#         pre_opts = slot_options(PRE_DATA)
-#         post_opts = slot_options(POST_DATA)
-#         ref_opts = slot_options(REF_DATA)
-#         pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
-#         post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
-#         ref_labels = [l for l, _ in ref_opts]; ref_values = [v for _, v in ref_opts]
-#
-#         plot_key = "do_plot_COMP"
-#
-#         col1, col2, col3 = st.columns(3)
-#         with col1:
-#             sel_pre = st.multiselect(
-#                 "PRE slots", pre_labels, default=None, label_visibility="hidden",
-#                 key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
-#             )
-#             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
-#         with col2:
-#             sel_post = st.multiselect(
-#                 "POST slots", post_labels, default=None, label_visibility="hidden",
-#                 key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
-#             )
-#             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
-#         with col3:
-#             sel_ref = st.multiselect(
-#                 "REF slots", ref_labels, default=None, label_visibility="hidden",
-#                 key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
-#             )
-#             ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
-#
-#         if st.button("Plot", key="plot_btn_COMP"):
-#             st.session_state[plot_key] = True
-#
-#         if st.session_state.get(plot_key, False):
-#             if not pre_keys or not post_keys or not ref_keys:
-#                 st.warning("Choose at least one slot for each.")
-#             n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
-#             if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
-#                 st.info(f"Pairing first {n_pairs} slots in order.")
-#
-#             if avg_profiles and n_pairs > 0: # if Average Profile is selected
-#                 for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
-#                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
-#                         st.warning("Selected slot missing in cache.")
-#                         continue
-#                     A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
-#                     A_line, _, _ = graph_arrays(A_c, graph)
-#                     B_line, _, _ = graph_arrays(B_c, graph)
-#                     if A_line.size == 0 or B_line.size == 0:
-#                         st.warning("No overlapping data for removal.")
-#                         continue
-#
-#                     nr = min(A_line.shape[1], B_line.shape[1], A_c.r.size, B_c.r.size)
-#                     if nr == 0:
-#                         st.warning("No overlapping data for removal.")
-#                         continue
-#
-#                     A_avg = average_profile(A_line)[:nr]
-#                     B_avg = average_profile(B_line)[:nr]
-#                     Z_avg = A_avg - B_avg # Average PRE - Average POST
-#
-#                     XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
-#                     XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
-#                     ZA = np.tile(A_avg, (XA.shape[0], 1))
-#                     ZB = np.tile(B_avg, (XB.shape[0], 1))
-#                     XZ, YZ = XA, YA
-#                     Zrem = np.tile(Z_avg, (XZ.shape[0], 1))
-#
-#                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
-#                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
-#                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
-#                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-#                     st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
-#
-#
-#                 if ref_slot and ref_slot in REF_CACHE:
-#                     R_c = REF_CACHE[ref_slot]
-#                     R_line, _, _ = graph_arrays(R_c, graph)
-#                     if R_line.size:
-#                         nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
-#                         if nr_ref > 0:
-#                             R_avg = average_profile(R_line)[:nr_ref]
-#                             Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE-POST) - REF
-#                             XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
-#                             Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
-#
-#                             st.subheader("Average Comparison")
-#                             plot_line_profile(
-#                                 A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
-#                                 height=520, avg=True, positive_only=True,
-#                                 overlay_pre=Z_avg[:nr_ref],  # show removal as gray
-#                                 overlay_post=R_avg               # show ref as gray
-#                             )
+if profile_mode == "REMOVAL" and comp_profiles:
+    if not (PRE_DATA and POST_DATA and REF_DATA and PRE_CACHE and POST_CACHE and REF_CACHE):
+        st.info("Please upload all PRE, POST, and REF files.")
+    else:
+        pre_opts = slot_options(PRE_DATA)
+        post_opts = slot_options(POST_DATA)
+        ref_opts = slot_options(REF_DATA)
+        pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
+        post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
+        ref_labels = [l for l, _ in ref_opts]; ref_values = [v for _, v in ref_opts]
+
+        plot_key = "do_plot_COMP"
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            sel_pre = st.multiselect(
+                "PRE slots", pre_labels, default=None, label_visibility="hidden",
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
+            )
+            pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
+        with col2:
+            sel_post = st.multiselect(
+                "POST slots", post_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
+            )
+            post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
+        with col3:
+            sel_ref = st.multiselect(
+                "REF slots", ref_labels, default=None, label_visibility="hidden",
+                key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
+            )
+            ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+
+        if st.button("Plot", key="plot_btn_COMP"):
+            st.session_state[plot_key] = True
+
+        if st.session_state.get(plot_key, False):
+            if not pre_keys or not post_keys or not ref_keys:
+                st.warning("Choose at least one slot for each.")
+            n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
+            if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
+                st.info(f"Pairing first {n_pairs} slots in order.")
+
+            if avg_profiles and n_pairs > 0: # if Average Profile is selected
+                for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
+                        st.warning("Selected slot missing in cache.")
+                        continue
+                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+                    A_line, _, _ = graph_arrays(A_c, graph)
+                    B_line, _, _ = graph_arrays(B_c, graph)
+                    if A_line.size == 0 or B_line.size == 0:
+                        st.warning("No overlapping data for removal.")
+                        continue
+
+                    nr = min(A_line.shape[1], B_line.shape[1], A_c.r.size, B_c.r.size)
+                    if nr == 0:
+                        st.warning("No overlapping data for removal.")
+                        continue
+
+                    A_avg = average_profile(A_line)[:nr]
+                    B_avg = average_profile(B_line)[:nr]
+                    Z_avg = A_avg - B_avg # Average PRE - Average POST
+
+                    XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
+                    XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
+                    ZA = np.tile(A_avg, (XA.shape[0], 1))
+                    ZB = np.tile(B_avg, (XB.shape[0], 1))
+                    XZ, YZ = XA, YA
+                    Zrem = np.tile(Z_avg, (XZ.shape[0], 1))
+
+                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
+                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+                    st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
+                
+                
+                if ref_slot and ref_slot in REF_CACHE:
+                    R_c = REF_CACHE[ref_slot]
+                    R_line, _, _ = graph_arrays(R_c, graph)
+                    if R_line.size:
+                        nr_ref = min(R_c.r.size, R_line.shape[1], Z_avg.size)
+                        if nr_ref > 0:
+                            R_avg = average_profile(R_line)[:nr_ref]
+                            Z_avg_cmp = Z_avg[:nr_ref] - R_avg  # (PRE-POST) - REF
+                            XA2, YA2 = A_c.X_mir[:, :nr_ref], A_c.Y_mir[:, :nr_ref]
+                            Zcmp_surf = np.tile(Z_avg_cmp, (XA2.shape[0], 1))
+    
+                            st.subheader("Average Comparison")
+                            plot_line_profile(
+                                A_c.r[:nr_ref], Z_avg_cmp, "Difference (µm)", "",
+                                height=520, avg=True, positive_only=True,
+                                overlay_pre=Z_avg[:nr_ref],  # show removal as gray
+                                overlay_post=R_avg               # show ref as gray
+                            )
 
 
 
