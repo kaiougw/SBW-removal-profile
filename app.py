@@ -1170,7 +1170,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
         base_opts = slot_options(BASE_DATA)
         pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
         post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
-        base_labels = [l for l, _ in base_opts]; base_labels = [v for _, v in base_opts]
+        base_labels = [l for l, _ in base_opts]; base_values = [v for _, v in base_opts]
 
         plot_key = "do_plot_REMOVAL"
 
