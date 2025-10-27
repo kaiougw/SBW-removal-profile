@@ -1057,7 +1057,7 @@ if post_file is not None:
 if ref_file is not None:
     try:
         REF_DATA = parsecleansbw(ref_file.read())
-        POST_CACHE = cache_for_data(REF_DATA)
+        REF_CACHE = cache_for_data(REF_DATA)
     except Exception as e:
         st.error(f"Failed to parse REF: {e}")
 
