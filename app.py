@@ -997,7 +997,7 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC, colD= st.columns(4)
+colA, colB, colC, colD= st.columns([1, 1, 1, 1])
 with colA:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
@@ -1367,13 +1367,39 @@ if profile_mode == "REMOVAL" and comp_profiles:
         with col1:
             sel_pre = st.multiselect(
                 "PRE slots", pre_labels, default=None, label_visibility="hidden",
-                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots")
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
+            )
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with col2:
             sel_post = st.multiselect(
                 "POST slots", post_labels, default=None, label_visibility="hidden",
-                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots")
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
+            )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
+        with col3:
+            sel_ref = st.multiselect(
+                "REF slots", ref_labels, default=None, label_visibility="hidden",
+                key="rem_ref_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose REF slots"
+            )
+            ref_keys = [ref_values[ref_labels.index(lbl)] for lbl in sel_ref] if sel_ref else []
+        
+        if st.button("Plot", key="plot_btn_COMP"):
+            st.session_state[plot_key] = True
+
+        if st.session_state.get(plot_key, False):
+            if not pre_keys or not post_keys or not ref_keys:
+                st.warning("Choose at least one slot for each.")
+            n_pairs = min(len(pre_keys), len(post_keys), len(ref_keys))
+            if len(pre_keys) != len(post_keys) != len(ref_keys) and n_pairs > 0:
+                st.info(f"Pairing first {n_pairs} slots in order.")
+                
+            if avg_profiles and n_pairs > 0:
+                for pre_slot, post_slot, ref_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], ref_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or ref_slot not in REF_CACHE:
+                        st.warning("Selected slot missing in cache.")
+                        continue
+
+
 
 # ==================================================================
 
