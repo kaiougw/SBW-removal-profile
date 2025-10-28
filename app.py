@@ -201,7 +201,6 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                                     line = fp.readline()
                                     for j in range(int(rptrows)):
                                         while line:
-                                            line = fp.readline()
                                             t1=line.replace(' ','').rstrip().split(',')
                                             if t1[0]==f'[MeasureData.PointsDataList.PointsData_{i}.LineDataList.PointDataList_{j}]':
                                                 line = fp.readline()
@@ -212,6 +211,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                                                     profile.append([float(t2[1]),float(t2[2])])
                                                 profiles.append(profile)
                                                 break
+                                            line = fp.readline()
                                     wafer['Profiles']=profiles
                                 sbw.WaferData[str(i)]=wafer
                                 break
@@ -1276,8 +1276,8 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                         continue
                     pre_c, post_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
                     r, theta = pre_c.r, pre_c.theta
-                    pre_line, A_surf, _ = graph_arrays(pre_c, graph)
-                    post_line, B_surf, _ = graph_arrays(post_c, graph)
+                    pre_line, pre_surf, _ = graph_arrays(pre_c, graph)
+                    post_line, post_surf, _ = graph_arrays(post_c, graph)
                     if pre_line.size == 0 or post_line.size == 0:
                         st.warning("No overlapping data for removal.")
                         continue
@@ -1316,11 +1316,11 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                             st.session_state[view_key] = not st.session_state[view_key]
                             st.rerun()
                         if st.session_state[view_key]:
-                            plot_3d(pre_c.X_mir, pre_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
-                            plot_3d(post_c.X_mir, post_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
+                            plot_3d(pre_c.X_mir, pre_c.Y_mir, pre_surf, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
+                            plot_3d(post_c.X_mir, post_c.Y_mir, post_surf, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(pre_c.X_mir, pre_c.Y_mir, A_surf, graph_label(graph, "PRE"), pre_c.Rmax, p_lo, p_hi, mask, height=300)
-                            plot_2d(post_c.X_mir, post_c.Y_mir, B_surf, graph_label(graph, "POST"), post_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(pre_c.X_mir, pre_c.Y_mir, pre_surf, graph_label(graph, "PRE"), pre_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(post_c.X_mir, post_c.Y_mir, post_surf, graph_label(graph, "POST"), post_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     overlay_pre = pre_line[:nt, :nr] if overlay_prepost_lines else None
                     overlay_post = post_line[:nt, :nr] if overlay_prepost_lines else None
@@ -1426,7 +1426,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     R_avg_comp = base_avg - R_avg
 
                     X_pre, Y_pre = pre_c.X_mir[:, :nr], pre_c.Y_mir[:, :nr]
-                    Zcomp_surf = np.tile(R_avg_comp, (X_pre.shape[0], 1))
+                    Rcomp_surf = np.tile(R_avg_comp, (X_pre.shape[0], 1))
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
@@ -1444,9 +1444,9 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                     col1, col2 = st.columns(2) # <<<
                     with col1:
-                        plot_2d(X_pre, Y_pre, Zcomp_surf, f"{graph_label(graph)} (µm)", pre_c.Rmax, p_lo, p_hi, mask, height=420)
+                        plot_2d(X_pre, Y_pre, Rcomp_surf, f"{graph_label(graph)} (µm)", pre_c.Rmax, p_lo, p_hi, mask, height=420)
                     with col2:
-                        plot_3d(X_pre, Y_pre, Zcomp_surf, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=420)
+                        plot_3d(X_pre, Y_pre, Rcomp_surf, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=420)
 
                     st.markdown("---")
             else:
@@ -1457,8 +1457,8 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                     pre_c, post_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
                     r, theta = pre_c.r, pre_c.theta
-                    pre_line, A_surf, _ = graph_arrays(pre_c, graph)
-                    post_line, B_surf, _ = graph_arrays(post_c, graph)
+                    pre_line, pre_surf, _ = graph_arrays(pre_c, graph)
+                    post_line, post_surf, _ = graph_arrays(post_c, graph)
                     R_line, _, _ = graph_arrays(R_c, graph)
                     if pre_line.size == 0 or post_line.size == 0 or R_line.size == 0:
                         st.warning("No overlapping data for comparison.")
@@ -1474,13 +1474,13 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     theta = theta[:nt]
 
                     R_line = pre_line[:nt, :nr] - post_line[:nt, :nr]
-                    R_line_cmp = R_line[:nt, :nr] - R_line
+                    R_line_comp = R_line[:nt, :nr] - R_line
 
-                    R_surf_cmp = np.vstack([R_line_cmp, R_line_cmp[:, ::-1]])
+                    R_surf_comp = np.vstack([R_line_comp, R_line_comp[:, ::-1]])
                     theta_full = (np.concatenate([theta, theta + np.pi]) % (2 * np.pi))
-                    Tcmp, Rmcmp = np.meshgrid(theta_full, r, indexing='ij')
-                    Xcmp = Rmcmp * np.cos(Tcmp)
-                    Ycmp = Rmcmp * np.sin(Tcmp)
+                    Tcomp, Rmcomp = np.meshgrid(theta_full, r, indexing='ij')
+                    Xcomp = Rmcomp * np.cos(Tcomp)
+                    Ycomp = Rmcomp * np.sin(Tcomp)
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
@@ -1495,24 +1495,24 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     col1, col2 = st.columns(2)
                     with col1:
                         rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                        plot_2d(Xcmp, Ycmp, R_surf_cmp, f"{graph_label(graph)} (µm)", rmax, p_lo, p_hi, mask)
+                        plot_2d(Xcomp, Ycomp, R_surf_comp, f"{graph_label(graph)} (µm)", rmax, p_lo, p_hi, mask)
                     with col2:
-                        plot_3d(Xcmp, Ycmp, R_surf_cmp, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=600)
+                        plot_3d(Xcomp, Ycomp, R_surf_comp, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=600)
 
-                    plot_line_grid(r, theta, R_line_cmp, f"{graph_label(graph)} (µm)", nrows=2, ncols=4, height=600)
+                    plot_line_grid(r, theta, R_line_comp, f"{graph_label(graph)} (µm)", nrows=2, ncols=4, height=600)
 
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
-                        ang_key = f"ang_cmp_{pre_slot}_{post_slot}_{base_slot}"
+                        ang_key = f"ang_comp_{pre_slot}_{post_slot}_{base_slot}"
                         if ang_key not in st.session_state:
                             st.session_state[ang_key] = angle_options[0]
                         ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
                         idx = angle_options.index(ang_str)
                         rotation_deg = float(ang_str.replace("°", ""))
 
-                        line_cmp = R_line_cmp[idx, :]
+                        line_comp = R_line_comp[idx, :]
                         plot_line_profile(
-                            r, line_cmp, f"{graph_label(graph)} (µm)", f"Angle {theta[idx] + 180:.1f}°",
+                            r, line_comp, f"{graph_label(graph)} (µm)", f"Angle {theta[idx] + 180:.1f}°",
                             height=520,
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
                             rotation_deg=rotation_deg
