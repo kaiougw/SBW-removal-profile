@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Tuple, List, Optional
 
 import numpy as np
-import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -38,7 +37,7 @@ def reset_plot(flag_key: str):
     Changing slot options resets session state, requiring Plot button to be pressed again.
     """
     st.session_state[flag_key] = False # False -> no plotting until Plot button is clicked.
-    # Streamlit reruns when user interacts with the application (e.g., selecting slots). 
+    # Streamlit reruns when user interacts with the application (e.g., selecting slots).
     # st.session_state[] ensures that the variable stored in the session state remains the same (st.session_state[flag_key]=False).
 
 def sort_keys(d): # d = WaferData
@@ -89,12 +88,12 @@ def average_profile(Z_line: np.ndarray) -> np.ndarray:
     np.ndarray
         1D array of length n_radii containing the averaged profile across all lines and their mirrored halves.
     """
-    Z_line = np.asarray(Z_line, dtype=float) 
+    Z_line = np.asarray(Z_line, dtype=float)
     if Z_line.size == 0:
         return np.array([])
     Z_full = np.vstack([Z_line, Z_line[:, ::-1]])  # stacks original (+r) and mirrored (-r) arrays vertically, for which average is returned
     with np.errstate(all='ignore'):
-        return np.nanmean(Z_full, axis=0) 
+        return np.nanmean(Z_full, axis=0)
 
 # SBW File Parsing and Cleaning
 class sbwinfo(object):
@@ -202,7 +201,6 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                                     line = fp.readline()
                                     for j in range(int(rptrows)):
                                         while line:
-                                            line = fp.readline()
                                             t1=line.replace(' ','').rstrip().split(',')
                                             if t1[0]==f'[MeasureData.PointsDataList.PointsData_{i}.LineDataList.PointDataList_{j}]':
                                                 line = fp.readline()
@@ -213,6 +211,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
                                                     profile.append([float(t2[1]),float(t2[2])])
                                                 profiles.append(profile)
                                                 break
+                                            line = fp.readline()
                                     wafer['Profiles']=profiles
                                 sbw.WaferData[str(i)]=wafer
                                 break
@@ -229,7 +228,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
     ---
     sbwfile: sbwinfo (from `parsesbw`)
         Parsed SBW file object containing lot and wafer data.
-    
+
     Output
     ---
     dict
@@ -302,7 +301,7 @@ def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
             pass
 
 # Wafer Matrix & Slot Caching
-def Thkmatrix(wafer): 
+def Thkmatrix(wafer):
     """
     Build 2D thickness matrix with rows = Angle, columns = Radius.
 
@@ -317,7 +316,7 @@ def Thkmatrix(wafer):
             [:,1] = Flatness values (ignored in this function)
 
     Output
-    --- 
+    ---
     r: np.ndarray
         1D array of radii, shape (n_radius,).
     theta: np.ndarray
@@ -351,10 +350,10 @@ def Flatmatrix(wafer):
         - "Angle": list of float
         - "Profiles": list of 2D arrays, each with columns
             [:,0] = Thickness values (ignored in this function)
-            [:,1] = Flatness values 
+            [:,1] = Flatness values
 
     Output
-    --- 
+    ---
     r: np.ndarray
         1D array of radii, shape (n_radius,).
     theta: np.ndarray
@@ -492,7 +491,7 @@ def cache_for_data(data: Dict[str, Any]) -> Dict[str, SlotCache]:
 
 
 # Plot Utilities
-def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data needed for line charts or 2D plots. 
+def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data needed for line charts or 2D plots.
     """
     Select thickness or flatness arrays from SlotCache.
 
@@ -513,7 +512,7 @@ def graph_arrays(c: SlotCache, graph: str): # Call this function to obtain data 
         - surface_array: np.ndarray -> for 2D plots, so mirrored
             Mirrored 2D array, shape (2*n_theta, n_radius), used for plotting full wafer surfaces.
         - label: str
-            Axis label string ("Shape (µm)" or "Thickness (µm)").
+            Axis label string ("Flatness (µm)" or "Thickness (µm)").
     """
     return (c.Flat, c.Flat_mir, 'Shape (µm)') if graph == 'flat' else (c.Thk, c.Thk_mir, 'Thickness (µm)')
 
@@ -531,7 +530,7 @@ def graph_label(graph: str, prefix: str = "") -> str:
     Output
     ---
     str
-        Label string ("Shape", "Thickness", or with prefix, e.g., "PRE Flatness").
+        Label string ("Flatness", "Thickness", or with prefix, e.g., "PRE Flatness").
     """
     base = "Shape" if graph == "flat" else "Thickness"
     if prefix:
@@ -570,7 +569,7 @@ def robust_clip(Z: np.ndarray, p_lo: float, p_hi: float):
         vmax = vmin + 1e-9 # forces vmin >= vmin to avoid crash
     return np.clip(Z, vmin, vmax), vmin, vmax # clip() limits Z to values within range (vmin, vmax)
 
-def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4 
+def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     """
     Mask notch (outliers) in array using Median Absolute Deviation (MAD).
     Any value further than k*MAD from median is replaced with NaN.
@@ -733,82 +732,6 @@ def plot_2d(X, Y, Z, zlabel: str, radius_max: float, p_lo: float, p_hi: float, m
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), dragmode="pan", height=height, autosize=True)
     st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
-
-def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
-                   nrows=2, ncols=4, height: int = 600,
-                   overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
-    """
-    Inputs:
-        r: np.ndarray
-            1D radii
-        theta: np.ndarray
-            1D angles
-        Z_line: np.ndarray
-            2D array (n_theta, n_radii)
-        zlabel: str
-            y-axis label
-        nrows, ncols: 
-            subplot grid size
-        height: int
-        overlay_pre, overlay_post: np.ndarray or None
-            optional PRE/POST overlays
-        avg: 
-            True if Average Profile selected
-    Output:
-        Line charts in Streamlit
-    """
-    r = np.asarray(r, dtype=float)
-    Z_line = np.asarray(Z_line, dtype=float)
-    if Z_line.size == 0:
-        return
-    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
-    n = Z_line.shape[0] # number of angles (scan lines)
-    count = min(n, nrows*ncols) # ensures no more plots than scan lines
-    theta = np.asarray(theta, dtype=float)
-    angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
-    # has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
-    # has_post = overlay_post is not None and np.size(overlay_post) != 0
-    for i in range(count):
-        row, col = i // ncols + 1, i % ncols + 1
-        y = Z_line[i, :]
-        x_i, y_i = finite_xy(-r, y) # -r flips line charts horizontally (like Kobelco software)
-        ang = angs[i] if i < angs.size else np.nan
-        # if has_pre:
-        #     y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
-        #     x_pre, y_pre = finite_xy(-r, y_pre) # -r flips line charts horizontally (like Kobelco software)
-        #     if y_pre.size:
-        #         fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
-        #                                  line=dict(width=1.0, color="gray"),
-        #                                  name="PRE"), row=row, col=col)
-        # if has_post:
-        #     y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
-        #     x_post, y_post = finite_xy(-r, y_post) # -r flips line charts horizontally (like Kobelco software)
-        #     if y_post.size:
-        #         fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
-        #                                  line=dict(width=1.0, color="gray"),
-        #                                  name="POST"), row=row, col=col)
-        fig.add_trace(go.Scatter(x=x_i, y=y_i, mode="lines",
-                                 line=dict(width=1.2, color="red"),
-                                 showlegend=False,
-                                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"),
-                      row=row, col=col)
-        label = f"Angle {ang+180:.1f}°"
-        fig.add_annotation(text=label, showarrow=False,
-                           x=0.5, xref="x domain", y=1.15, yref="y domain",
-                           font=dict(size=12, color="gray"), row=row, col=col)
-        if row == nrows:
-            fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
-        if col == 1:
-            fig.update_yaxes(title_text=zlabel, row=row, col=col)
-    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30)) # adjust margins
-    for r_i in range(1, nrows+1):
-        for c_i in range(1, ncols+1):
-            fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
-            fig.update_yaxes(matches="y1", row=r_i, col=c_i, showticklabels=True)
-    fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
-    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
-
 def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, height: int = 500,
                       overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False,
                       waferimg: Optional[str] = None, rotation_deg: float = 0.0, positive_only: bool = False):
@@ -824,7 +747,7 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         height: int
         overlay_pre, overlay_post: np.ndarray or None
             None by default
-        avg: 
+        avg:
             True if Average Profile checkbox checked
         waferimg: str or None
             Wafer image
@@ -847,30 +770,30 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
         x, y = finite_xy(-x_full, y_full) # -x_full flips line chart horizontally (like Kobelco software)
     fig = go.Figure()
 
-    show_y2 = (overlay_pre is not None) or (overlay_post is not None) # if overlay is selected, show secondary y-axis
-    match_y2 = False # by default secondary y-axis does not match the primary y-axis
+    show_y2 = (overlay_pre is not None) or (overlay_post is not None)
+    match_y2 = False
     if show_y2:
-        rem_max = np.nanmax(np.abs(y[np.isfinite(y)])) if np.isfinite(y).any() else 0.0 # find largest Removal value
-        overlay_values = []
+        rem_max = np.nanmax(np.abs(y[np.isfinite(y)])) if np.isfinite(y).any() else 0.0
+        over_vals = []
         if overlay_pre is not None:
             yp = np.asarray(overlay_pre, dtype=float)
             if positive_only and yp.size == y_full.size:
                 yp = yp[m]
-            overlay_values.append(yp)
+            over_vals.append(yp)
         if overlay_post is not None:
             yo = np.asarray(overlay_post, dtype=float)
             if positive_only and yo.size == y_full.size:
                 yo = yo[m]
-            overlay_values.append(yo)
-        if overlay_values:
-            ov = np.concatenate([np.asarray(v, dtype=float).ravel() for v in overlay_values])
+            over_vals.append(yo)
+        if over_vals:
+            ov = np.concatenate([np.asarray(v, dtype=float).ravel() for v in over_vals])
             ov = ov[np.isfinite(ov)]
-            ov_max = np.nanmax(np.abs(ov)) if ov.size else 0.0 # find largest overlay value
+            ov_max = np.nanmax(np.abs(ov)) if ov.size else 0.0
         else:
             ov_max = 0.0
         ratio = (ov_max / rem_max) if rem_max > 0 else np.inf
-        match_y2 = (ratio <= 5.0) # if the overlay values are within 5x of removal values, then secondary y-axis matches primary y-axis
-    
+        match_y2 = (ratio <= 5.0)
+
     # overlay PRE
     if overlay_pre is not None: # if "Overlay line charts" checkbox is checked
         y_pre = np.asarray(overlay_pre, dtype=float)
@@ -950,6 +873,81 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
     else:
         st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
 
+def plot_line_grid(r: np.ndarray, theta: np.ndarray, Z_line: np.ndarray, zlabel: str,
+                   nrows=2, ncols=4, height: int = 600,
+                   overlay_pre: Optional[np.ndarray] = None, overlay_post: Optional[np.ndarray] = None, avg=False):
+    """
+    Inputs:
+        r: np.ndarray
+            1D radii
+        theta: np.ndarray
+            1D angles
+        Z_line: np.ndarray
+            2D array (n_theta, n_radii)
+        zlabel: str
+            y-axis label
+        nrows, ncols:
+            subplot grid size
+        height: int
+        overlay_pre, overlay_post: np.ndarray or None
+            optional PRE/POST overlays
+        avg:
+            True if Average Profile selected
+    Output:
+        Line charts in Streamlit
+    """
+    r = np.asarray(r, dtype=float)
+    Z_line = np.asarray(Z_line, dtype=float)
+    if Z_line.size == 0:
+        return
+    fig = make_subplots(rows=nrows, cols=ncols, shared_xaxes=True, shared_yaxes=True)
+    n = Z_line.shape[0] # number of angles (scan lines)
+    count = min(n, nrows*ncols) # ensures no more plots than scan lines
+    theta = np.asarray(theta, dtype=float)
+    angs = np.degrees(theta[:count]) if theta.size else np.full(count, np.nan)
+    # has_pre = overlay_pre is not None and np.size(overlay_pre) != 0
+    # has_post = overlay_post is not None and np.size(overlay_post) != 0
+    for i in range(count):
+        row, col = i // ncols + 1, i % ncols + 1
+        y = Z_line[i, :]
+        x_i, y_i = finite_xy(-r, y) # -r flips line charts horizontally (like Kobelco software)
+        ang = angs[i] if i < angs.size else np.nan
+        # if has_pre:
+        #     y_pre = overlay_pre[i, :] if i < np.asarray(overlay_pre).shape[0] else np.array([])
+        #     x_pre, y_pre = finite_xy(-r, y_pre) # -r flips line charts horizontally (like Kobelco software)
+        #     if y_pre.size:
+        #         fig.add_trace(go.Scatter(x=x_pre, y=y_pre, mode="lines",
+        #                                  line=dict(width=1.0, color="gray"),
+        #                                  name="PRE"), row=row, col=col)
+        # if has_post:
+        #     y_post = overlay_post[i, :] if i < np.asarray(overlay_post).shape[0] else np.array([])
+        #     x_post, y_post = finite_xy(-r, y_post) # -r flips line charts horizontally (like Kobelco software)
+        #     if y_post.size:
+        #         fig.add_trace(go.Scatter(x=x_post, y=y_post, mode="lines",
+        #                                  line=dict(width=1.0, color="gray"),
+        #                                  name="POST"), row=row, col=col)
+        fig.add_trace(go.Scatter(x=x_i, y=y_i, mode="lines",
+                                 line=dict(width=1.2, color="red"),
+                                 showlegend=False,
+                                 hovertemplate="x: %{x}<br>y: %{y}<extra></extra>"),
+                      row=row, col=col)
+        label = f"Angle {ang+180:.1f}°"
+        fig.add_annotation(text=label, showarrow=False,
+                           x=0.5, xref="x domain", y=1.15, yref="y domain",
+                           font=dict(size=12, color="gray"), row=row, col=col)
+        if row == nrows:
+            fig.update_xaxes(title_text="Radius (mm)", row=row, col=col)
+        if col == 1:
+            fig.update_yaxes(title_text=zlabel, row=row, col=col)
+    fig.update_layout(showlegend=False, dragmode="pan", height=height, margin=dict(l=30, r=30, t=60, b=30)) # adjust margins
+    for r_i in range(1, nrows+1):
+        for c_i in range(1, ncols+1):
+            fig.update_xaxes(matches="x1", row=r_i, col=c_i, showticklabels=True)
+            fig.update_yaxes(matches="y1", row=r_i, col=c_i, showticklabels=True)
+    fig.update_xaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="lightgray", zeroline=False)
+    st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
+
 
 def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
@@ -984,9 +982,8 @@ def slot_options(data: Optional[Dict[str, Any]]) -> List[Tuple[str, str]]:
     wafers = data.get('WaferData', {}) or {}
     for k in sort_keys(wafers): # sort_keys used so that keys are interpreted as numbers and sorted numerically.
         ref = wafers.get(k, {}) or {} # ref = dict of wafer info for a specific slot.
-        disp.append((f"Slot {ref.get('SlotNo', k)}", k)) 
+        disp.append((f"Slot {ref.get('SlotNo', k)}", k))
     return disp
-
 
 # UI
 st.set_page_config(page_title="SBW Removal Profile", layout="wide")
@@ -1000,36 +997,44 @@ with st.sidebar:
         p_hi = min(100.0, p_lo + 0.5)
     mask = st.checkbox("Mask notch", value=False)
 
-colA, colB, colC = st.columns([1, 1, 1])
+colA, colB, colC, colD= st.columns([1, 1, 1, 1])
 with colA:
-    pre_file = st.file_uploader("Upload PRE .sbw", type=["sbw"], key="pre")
-with colB:
-    post_file = st.file_uploader("Upload POST .sbw", type=["sbw"], key="post")
-with colC:
     graph = st.selectbox( # dropdown menu (Thickness | Flatness)
         "Graph Mode",
-        options=[("Thickness", "thk"), ("Shape", "flat")], label_visibility="hidden",
+        options=[("Thickness", "thk"), ("Shape", "flat")], label_visibility="collapsed",
         format_func=lambda x: x[0]
-    )[1] 
-    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"],label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
-    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False)
+    )[1]
+with colB:
+    profile_mode = st.segmented_control("Profile Mode",["PRE", "POST", "REMOVAL"], label_visibility="collapsed", width="stretch") # (PRE | POST | REMOVAL)
+with colC:
+    avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False, width="stretch")
+with colD:
+    comp_profiles = st.checkbox("Compare against a Base Wafer", key="comp_profiles", help="Compare (PRE − POST) against BASE", value=False, disabled=profile_mode != "REMOVAL", width="stretch")
 
+colA, colB, colC= st.columns([1, 1, 1])
+with colA:
+    pre_file  = st.file_uploader("Choose a PRE file (.sbw)",  type=["sbw"], key="pre")
+with colB:
+    post_file = st.file_uploader("Choose a POST file (.sbw)", type=["sbw"], key="post")
+with colC:
+    base_file  = st.file_uploader("Choose a BASE file (.sbw)",  type=["sbw"], key="base", disabled= not comp_profiles)
+
+
+# PRE vs POST ======================================================
 # Sidebar options only when REMOVAL is selected
-# show_prepost_3d = False
 overlay_prepost_lines = False
 if profile_mode == "REMOVAL":
     with st.sidebar:
         # show_prepost_3d = st.checkbox("PRE/POST 3D plots", value=False)
         overlay_prepost_lines = st.checkbox("Overlay line charts", value=False)
 
-PRE_DATA = POST_DATA = None
-PRE_CACHE = POST_CACHE = None
+PRE_DATA = POST_DATA = BASE_DATA = None
+PRE_CACHE = POST_CACHE = BASE_CACHE = None
 
 if pre_file is not None:
     try:
         PRE_DATA = parsecleansbw(pre_file.read())
         PRE_CACHE = cache_for_data(PRE_DATA)
-        st.success(f"Loaded {PRE_DATA.get('Lot', '')}")
     except Exception as e:
         st.error(f"Failed to parse PRE: {e}")
 
@@ -1037,11 +1042,16 @@ if post_file is not None:
     try:
         POST_DATA = parsecleansbw(post_file.read())
         POST_CACHE = cache_for_data(POST_DATA)
-        st.success(f"Loaded {POST_DATA.get('Lot', '')}")
     except Exception as e:
         st.error(f"Failed to parse POST: {e}")
 
-st.markdown("---")
+if base_file is not None:
+    try:
+        BASE_DATA = parsecleansbw(base_file.read())
+        BASE_CACHE = cache_for_data(BASE_DATA)
+    except Exception as e:
+        st.error(f"Failed to parse BASE: {e}")
+
 
 # profile_mode == PRE or POST:
 if profile_mode in ("PRE", "POST"):
@@ -1058,8 +1068,8 @@ if profile_mode in ("PRE", "POST"):
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
         plot_key = f"do_plot_{profile_mode}"
-        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots",
-                            on_change=reset_plot, args=(plot_key,))
+        sel = st.multiselect("Slots", labels, default=None, key=f"{profile_mode}_slots", label_visibility="hidden",
+                            on_change=reset_plot, args=(plot_key,), placeholder="Choose slots")
         # on_change=reset_plot invokes `reset_plot` function to be run whenever the widget's value (Slots in this case) changes.
         # arg=(plot_key,) passes `plot_key=f"do_plot_{profile_mode}"` as the argument to `reset_plot`.
         #>>> "When Slots are changed, run `reset_plot` function and set st.session_state[plot_key]=False."
@@ -1117,7 +1127,7 @@ if profile_mode in ("PRE", "POST"):
                                 st.dataframe(styler, use_container_width=True, hide_index=True)
                             else:
                                 st.dataframe(df_summary, use_container_width=True, hide_index=True)
-                        
+
                         col1, col2 = st.columns(2)
                         with col1:
                             plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, mask)
@@ -1163,6 +1173,7 @@ if profile_mode in ("PRE", "POST"):
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
+
                         summary = data.get("SummaryReport", [])
                         if summary:
                             df_summary = pd.DataFrame(summary)
@@ -1173,10 +1184,11 @@ if profile_mode in ("PRE", "POST"):
                                 st.dataframe(styler, use_container_width=True, hide_index=True)
                             else:
                                 st.dataframe(df_summary, use_container_width=True, hide_index=True)
+
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
-else:
+if profile_mode == "REMOVAL" and not comp_profiles:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
@@ -1193,26 +1205,32 @@ else:
         #         st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
-        pre_labels = [l for l, _ in pre_opts]
-        pre_values = [v for _, v in pre_opts]
-        post_labels = [l for l, _ in post_opts]
-        post_values = [v for _, v in post_opts]
+        base_opts = slot_options(BASE_DATA)
+        pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
+        post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
+        base_labels = [l for l, _ in base_opts]; base_values = [v for _, v in base_opts]
 
         plot_key = "do_plot_REMOVAL"
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             sel_pre = st.multiselect(
-                "PRE slots", pre_labels, default=None,
-                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,)
+                "PRE slots", pre_labels, default=None, label_visibility="hidden",
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
             )
             pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
         with col2:
             sel_post = st.multiselect(
-                "POST slots", post_labels, default=None,
-                key="rem_post_slots", on_change=reset_plot, args=(plot_key,)
+                "POST slots", post_labels, default=None, label_visibility="hidden",
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
             )
             post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
+        with col3:
+            sel_base = st.multiselect(
+                "BASE slots", base_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
+                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
+            )
+            base_keys = [base_values[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
@@ -1223,45 +1241,44 @@ else:
             n_pairs = min(len(pre_keys), len(post_keys))
             if len(pre_keys) != len(post_keys) and n_pairs > 0:
                 st.info(f"Pairing first {n_pairs} slots in order.")
-            
+
             if avg_profiles and n_pairs > 0: # if Average Profile is selected
                 for pre_slot, post_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs]):
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
-                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
-                    A_line, _, _ = graph_arrays(A_c, graph)
-                    B_line, _, _ = graph_arrays(B_c, graph)
-                    if A_line.size == 0 or B_line.size == 0:
+                    pre_c, post_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+                    pre_line, _, _ = graph_arrays(pre_c, graph)
+                    post_line, _, _ = graph_arrays(post_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0:
                         st.warning("No overlapping data for removal.")
                         continue
 
-                    nr = min(A_line.shape[1], B_line.shape[1], A_c.r.size, B_c.r.size)
+                    nr = min(pre_line.shape[1], post_line.shape[1], pre_c.r.size, post_c.r.size)
                     if nr == 0:
                         st.warning("No overlapping data for removal.")
                         continue
 
-                    A_avg = average_profile(A_line)[:nr]
-                    B_avg = average_profile(B_line)[:nr]
-                    Z_avg = A_avg - B_avg # Average PRE - Average POST
+                    pre_avg = average_profile(pre_line)[:nr]
+                    post_avg = average_profile(post_line)[:nr]
+                    R_avg = pre_avg - post_avg # Average PRE - Average POST
 
-                    XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
-                    XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
-                    ZA = np.tile(A_avg, (XA.shape[0], 1))
-                    ZB = np.tile(B_avg, (XB.shape[0], 1))
-                    XZ, YZ = XA, YA
-                    Zrem = np.tile(Z_avg, (XZ.shape[0], 1))
+                    X_pre, Y_pre = pre_c.X_mir[:, :nr], pre_c.Y_mir[:, :nr]
+                    X_post, Y_post = post_c.X_mir[:, :nr], post_c.Y_mir[:, :nr]
+                    R_pre = np.tile(pre_avg, (X_pre.shape[0], 1))
+                    R_post = np.tile(post_avg, (X_post.shape[0], 1))
+                    Rem = np.tile(R_avg, (X_pre.shape[0], 1))
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-                    st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
+                    st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno})")
 
-                    overlay_pre = A_avg if overlay_prepost_lines else None
-                    overlay_post = B_avg if overlay_prepost_lines else None
+                    overlay_pre = pre_avg if overlay_prepost_lines else None
+                    overlay_post = post_avg if overlay_prepost_lines else None
                     plot_line_profile(
-                        A_c.r[:nr], Z_avg, 'Removal (µm)', "",
+                        pre_c.r[:nr], R_avg, 'Removal (µm)', "",
                         height=520, avg=True,
                         overlay_pre=overlay_pre, overlay_post=overlay_post, positive_only=True
                     )
@@ -1289,7 +1306,7 @@ else:
                                 st.dataframe(styler, use_container_width=True, hide_index=True)
                             else:
                                 st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
-                    
+
                     view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
                     btn_key  = f"btn_avg_pair_{pre_slot}_{post_slot}"
                     if view_key not in st.session_state:
@@ -1302,15 +1319,15 @@ else:
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.session_state[view_key]:
-                            plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
+                            plot_3d(X_pre, Y_pre, R_pre, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(X_pre, Y_pre, R_pre, graph_label(graph, "PRE"), pre_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     with col2:
                         if st.session_state[view_key]:
-                            plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
+                            plot_3d(X_post, Y_post, R_post, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(X_post, Y_post, R_post, graph_label(graph, "POST"), post_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     st.markdown("---")
 
@@ -1319,22 +1336,22 @@ else:
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
-                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
-                    r, theta = A_c.r, A_c.theta
-                    A_line, A_surf, _ = graph_arrays(A_c, graph)
-                    B_line, B_surf, _ = graph_arrays(B_c, graph)
-                    if A_line.size == 0 or B_line.size == 0:
+                    pre_c, post_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+                    r, theta = pre_c.r, pre_c.theta
+                    pre_line, pre_surf, _ = graph_arrays(pre_c, graph)
+                    post_line, post_surf, _ = graph_arrays(post_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0:
                         st.warning("No overlapping data for removal.")
                         continue
-                    nt = min(A_line.shape[0], B_line.shape[0])
-                    nr = min(A_line.shape[1], B_line.shape[1])
+                    nt = min(pre_line.shape[0], post_line.shape[0])
+                    nr = min(pre_line.shape[1], post_line.shape[1])
                     if nt == 0 or nr == 0:
                         st.warning("No overlapping data for removal.")
                         continue
                     r = r[:nr]
                     theta = theta[:nt]
-                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr] # PRE - POST
-                    Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
+                    R_line = pre_line[:nt, :nr] - post_line[:nt, :nr] # PRE - POST
+                    R_surf = np.vstack([R_line, R_line[:, ::-1]])
                     theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
                     T, Rm = np.meshgrid(theta_full, r, indexing='ij')
                     X = Rm*np.cos(T)
@@ -1346,12 +1363,12 @@ else:
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
 
-                    st.subheader(f"{graph_label(graph)} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
+                    st.subheader(f"{graph_label(graph)} Removal Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno})")
 
                     col1, col2 = st.columns(2)
                     with col1:
                         rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                        plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, mask)
+                        plot_2d(X, Y, R_surf, zlabel, rmax, p_lo, p_hi, mask)
                     with col2:
                         view_key = f"show3d_{pre_slot}_{post_slot}"
                         if view_key not in st.session_state:
@@ -1361,16 +1378,16 @@ else:
                             st.session_state[view_key] = not st.session_state[view_key]
                             st.rerun()
                         if st.session_state[view_key]:
-                            plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
-                            plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
+                            plot_3d(pre_c.X_mir, pre_c.Y_mir, pre_surf, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
+                            plot_3d(post_c.X_mir, post_c.Y_mir, post_surf, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, mask, height=300)
-                            plot_2d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(pre_c.X_mir, pre_c.Y_mir, pre_surf, graph_label(graph, "PRE"), pre_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(post_c.X_mir, post_c.Y_mir, post_surf, graph_label(graph, "POST"), post_c.Rmax, p_lo, p_hi, mask, height=300)
 
-                    overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
-                    overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
+                    overlay_pre = pre_line[:nt, :nr] if overlay_prepost_lines else None
+                    overlay_post = post_line[:nt, :nr] if overlay_prepost_lines else None
 
-                    plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=600,
+                    plot_line_grid(r, theta, R_line, zlabel, nrows=2, ncols=4, height=600,
                                 overlay_pre=overlay_pre, overlay_post=overlay_post)
 
                     if len(theta) > 0:
@@ -1381,7 +1398,7 @@ else:
                         ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
                         idx = angle_options.index(ang_str)
                         ang = theta[idx]
-                        line = Z_line[idx, :]
+                        line = R_line[idx, :]
                         rotation_deg = float(ang_str.replace("°", ""))
                         pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
                         post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
@@ -1418,10 +1435,183 @@ else:
                                 st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
 
                     st.markdown("---")
+# ==================================================================
 
-# with st.sidebar:
-#     st.markdown("---")
-#     st.link_button("Documentation", "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/README.md")
+
+
+# REMOVAL vs BASE ===================================================
+if profile_mode == "REMOVAL" and comp_profiles:
+    if not (PRE_DATA and POST_DATA and BASE_DATA and PRE_CACHE and POST_CACHE and BASE_CACHE):
+        st.info("Please upload all PRE, POST, and BASE files.")
+    else:
+        pre_opts = slot_options(PRE_DATA)
+        post_opts = slot_options(POST_DATA)
+        base_opts = slot_options(BASE_DATA)
+        pre_labels = [l for l, _ in pre_opts]; pre_values = [v for _, v in pre_opts]
+        post_labels = [l for l, _ in post_opts]; post_values = [v for _, v in post_opts]
+        base_labels = [l for l, _ in base_opts]; base_values = [v for _, v in base_opts]
+
+        plot_key = "do_plot_PREDICTED"
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            sel_pre = st.multiselect(
+                "PRE slots", pre_labels, default=None, label_visibility="hidden",
+                key="rem_pre_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose PRE slots"
+            )
+            pre_keys = [pre_values[pre_labels.index(lbl)] for lbl in sel_pre] if sel_pre else []
+        with col2:
+            sel_post = st.multiselect(
+                "POST slots", post_labels, default=None, label_visibility="hidden",
+                key="rem_post_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose POST slots"
+            )
+            post_keys = [post_values[post_labels.index(lbl)] for lbl in sel_post] if sel_post else []
+        with col3:
+            sel_base = st.multiselect(
+                "BASE slots", base_labels, default=None, label_visibility="hidden",
+                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
+            )
+            base_keys = [base_values[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
+
+        if st.button("Plot", key="plot_btn_COMP"):
+            st.session_state[plot_key] = True
+
+        if st.session_state.get(plot_key, False):
+            if not pre_keys or not post_keys or not base_keys:
+                st.warning("Choose at least one slot for each.")
+            n_pairs = min(len(pre_keys), len(post_keys), len(base_keys))
+            if n_pairs == 0:
+                st.stop()
+            if len({len(pre_keys), len(post_keys), len(base_keys)}) != 1:
+                st.info(f"Pairing first {n_pairs} slots in order.")
+
+            if avg_profiles:
+                for pre_slot, post_slot, base_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], base_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or base_slot not in BASE_CACHE:
+                        st.warning("Selected slot missing in cache.")
+                        continue
+
+                    pre_c, post_c, base_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
+                    pre_line, _, _ = graph_arrays(pre_c, graph)
+                    post_line, _, _ = graph_arrays(post_c, graph)
+                    base_line, _, _ = graph_arrays(base_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0 or base_line.size == 0:
+                        st.warning("No overlapping data for comparison.")
+                        continue
+
+                    nr = min(pre_line.shape[1], post_line.shape[1], base_line.shape[1], pre_c.r.size, post_c.r.size, base_c.r.size)
+                    if nr == 0:
+                        st.warning("No overlapping data for comparison.")
+                        continue
+
+                    pre_avg = average_profile(pre_line)[:nr]
+                    post_avg = average_profile(post_line)[:nr]
+                    base_avg = average_profile(base_line)[:nr]
+
+                    R_avg = pre_avg - post_avg
+                    R_avg_comp = base_avg - R_avg
+
+                    X_pre, Y_pre = pre_c.X_mir[:, :nr], pre_c.Y_mir[:, :nr]
+                    Rcomp_surf = np.tile(R_avg_comp, (X_pre.shape[0], 1))
+
+                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
+                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    base_lot = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('Lot', BASE_DATA.get('Lot', ''))
+                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+                    base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
+
+                    st.subheader(f"Predicted Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno}), BASE:{base_lot}({base_slotno})")
+
+                    plot_line_profile(
+                        pre_c.r[:nr], R_avg_comp, f"{graph_label(graph)} (µm)", "",
+                        height=520, avg=True, positive_only=True
+                    )
+
+                    col1, col2 = st.columns(2) # <<<
+                    with col1:
+                        plot_2d(X_pre, Y_pre, Rcomp_surf, f"{graph_label(graph)} (µm)", pre_c.Rmax, p_lo, p_hi, mask, height=420)
+                    with col2:
+                        plot_3d(X_pre, Y_pre, Rcomp_surf, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=420)
+
+                    st.markdown("---")
+            else:
+                for pre_slot, post_slot, base_slot in zip(pre_keys[:n_pairs], post_keys[:n_pairs], base_keys[:n_pairs]):
+                    if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE or base_slot not in BASE_CACHE:
+                        st.warning("Selected slot missing in cache.")
+                        continue
+
+                    pre_c, post_c, base_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
+                    r, theta = pre_c.r, pre_c.theta
+                    pre_line, pre_surf, _ = graph_arrays(pre_c, graph)
+                    post_line, post_surf, _ = graph_arrays(post_c, graph)
+                    base_line, _, _ = graph_arrays(base_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0 or base_line.size == 0:
+                        st.warning("No overlapping data for comparison.")
+                        continue
+
+                    nt = min(pre_line.shape[0], post_line.shape[0], base_line.shape[0])
+                    nr = min(pre_line.shape[1], post_line.shape[1], base_line.shape[1])
+                    if nt == 0 or nr == 0:
+                        st.warning("No overlapping data for comparison.")
+                        continue
+
+                    r = r[:nr]
+                    theta = theta[:nt]
+
+                    R_line = pre_line[:nt, :nr] - post_line[:nt, :nr]
+                    R_line_comp = base_line[:nt, :nr] - R_line
+
+                    R_surf_comp = np.vstack([R_line_comp, R_line_comp[:, ::-1]])
+                    theta_full = (np.concatenate([theta, theta + np.pi]) % (2 * np.pi))
+                    Tcomp, Rmcomp = np.meshgrid(theta_full, r, indexing='ij')
+                    Xcomp = Rmcomp * np.cos(Tcomp)
+                    Ycomp = Rmcomp * np.sin(Tcomp)
+
+                    pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
+                    post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
+                    base_lot = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('Lot', BASE_DATA.get('Lot', ''))
+                    pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
+                    post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
+                    base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
+
+                    st.subheader(
+                        f"Predicted Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno}), BASE:{base_lot}({base_slotno})")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
+                        plot_2d(Xcomp, Ycomp, R_surf_comp, f"{graph_label(graph)} (µm)", rmax, p_lo, p_hi, mask)
+                    with col2:
+                        plot_3d(Xcomp, Ycomp, R_surf_comp, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=600)
+
+                    plot_line_grid(r, theta, R_line_comp, f"{graph_label(graph)} (µm)", nrows=2, ncols=4, height=600)
+
+                    if len(theta) > 0:
+                        angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
+                        ang_key = f"ang_comp_{pre_slot}_{post_slot}_{base_slot}"
+                        if ang_key not in st.session_state:
+                            st.session_state[ang_key] = angle_options[0]
+                        ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
+                        idx = angle_options.index(ang_str)
+                        ang = theta[idx]
+                        rotation_deg = float(ang_str.replace("°", ""))
+
+                        line_comp = R_line_comp[idx, :]
+                        plot_line_profile(
+                            r, line_comp, f"{graph_label(graph)} (µm)", f"Angle {ang + 180:.1f}°",
+                            height=520,
+                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
+                            rotation_deg=rotation_deg
+                        )
+
+                    st.markdown("---")
+
+
+
+# ==================================================================
+
+import requests
 
 if "open_readme" not in st.session_state:
     st.session_state.open_readme = False
