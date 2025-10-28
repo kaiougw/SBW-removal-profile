@@ -37,7 +37,7 @@ def reset_plot(flag_key: str):
     Changing slot options resets session state, requiring Plot button to be pressed again.
     """
     st.session_state[flag_key] = False # False -> no plotting until Plot button is clicked.
-    # Streamlit reruns when user interacts with the application (e.g., selecting slots). 
+    # Streamlit reruns when user interacts with the application (e.g., selecting slots).
     # st.session_state[] ensures that the variable stored in the session state remains the same (st.session_state[flag_key]=False).
 
 def sort_keys(d): # d = WaferData
@@ -1192,7 +1192,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                 "BASE slots", base_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
                 key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
             )
-            base_keys = [base_labels[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
+            base_keys = [base_values[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
 
         if st.button("Plot", key="plot_btn_REMOVAL"):
             st.session_state[plot_key] = True
@@ -1471,7 +1471,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         continue
 
                     r = r[:nr]
-                    theta = theta[:nt]
+                    ang = theta[:nt]
 
                     R_line = pre_line[:nt, :nr] - post_line[:nt, :nr]
                     R_line_comp = base_line[:nt, :nr] - R_line
@@ -1512,7 +1512,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
 
                         line_comp = R_line_comp[idx, :]
                         plot_line_profile(
-                            r, line_comp, f"{graph_label(graph)} (µm)", f"Angle {theta[idx] + 180:.1f}°",
+                            r, line_comp, f"{graph_label(graph)} (µm)", f"Angle {ang + 180:.1f}°",
                             height=520,
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
                             rotation_deg=rotation_deg
