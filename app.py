@@ -1528,8 +1528,43 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         pre_c.r[:nr], R_avg_comp, f"{graph_label(graph)} (µm)", "",
                         height=520, avg=True, positive_only=True
                     )
+                    
+                    col_pre, col_post, col_base = st.columns(3)
+                    with col_pre:
+                        pre_summary = PRE_DATA.get("SummaryReport", [])
+                        if pre_summary:
+                            df_pre_summary = pd.DataFrame(pre_summary)
+                            slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_pre_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                    with col_post:
+                        post_summary = POST_DATA.get("SummaryReport", [])
+                        if post_summary:
+                            df_post_summary = pd.DataFrame(post_summary)
+                            slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_post_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
+                    with col_base:
+                        base_summary = BASE_DATA.get("SummaryReport", [])
+                        if base_summary:
+                            df_base_summary = pd.DataFrame(base_summary)
+                            slot_col = next((c for c in df_base_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_base_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(base_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_base_summary, use_container_width=True, hide_index=True)
 
-                    col1, col2 = st.columns(2) # <<<
+                    col1, col2 = st.columns(2)
                     with col1:
                         plot_2d(X_pre, Y_pre, Rcomp_surf, f"{graph_label(graph)} (µm)", pre_c.Rmax, p_lo, p_hi, mask, height=420)
                     with col2:
@@ -1605,6 +1640,50 @@ if profile_mode == "REMOVAL" and comp_profiles:
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
                             rotation_deg=rotation_deg
                         )
+
+                        col_pre, col_post, col_base = st.columns(3)
+                        with col_pre:
+                            pre_summary = PRE_DATA.get("SummaryReport", [])
+                            if pre_summary:
+                                df_pre_summary = pd.DataFrame(pre_summary)
+                                slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"),
+                                                None)
+                                if slot_col:
+                                    styler = df_pre_summary.style.apply(
+                                        lambda r: [
+                                            'font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else ''
+                                            for _ in r.index], axis=1)
+                                    st.dataframe(styler, use_container_width=True, hide_index=True)
+                                else:
+                                    st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                        with col_post:
+                            post_summary = POST_DATA.get("SummaryReport", [])
+                            if post_summary:
+                                df_post_summary = pd.DataFrame(post_summary)
+                                slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"),
+                                                None)
+                                if slot_col:
+                                    styler = df_post_summary.style.apply(
+                                        lambda r: [
+                                            'font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else ''
+                                            for _ in r.index], axis=1)
+                                    st.dataframe(styler, use_container_width=True, hide_index=True)
+                                else:
+                                    st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
+                        with col_base:
+                            base_summary = BASE_DATA.get("SummaryReport", [])
+                            if base_summary:
+                                df_base_summary = pd.DataFrame(base_summary)
+                                slot_col = next((c for c in df_base_summary.columns if c.strip().lower() in "slotno"),
+                                                None)
+                                if slot_col:
+                                    styler = df_base_summary.style.apply(
+                                        lambda r: [
+                                            'font-weight: bold' if str(r.get(slot_col, '')) == str(base_slotno) else ''
+                                            for _ in r.index], axis=1)
+                                    st.dataframe(styler, use_container_width=True, hide_index=True)
+                                else:
+                                    st.dataframe(df_base_summary, use_container_width=True, hide_index=True)
 
                     st.markdown("---")
 
