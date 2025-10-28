@@ -1490,7 +1490,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
                     st.subheader(
-                        f"Predicted Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})")
+                        f"Predicted Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}) - {base_lot}({base_slotno})")
 
                     col1, col2 = st.columns(2)
                     with col1:
