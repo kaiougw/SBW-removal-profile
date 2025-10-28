@@ -1060,6 +1060,10 @@ if profile_mode in ("PRE", "POST"):
     if not data or not cache:
         st.info(f"Please upload a {profile_mode} file.")
     else:
+        # summary = data.get("SummaryReport", [])
+        # if summary:
+        #     df_summary = pd.DataFrame(summary)
+        #     st.dataframe(df_summary, use_container_width=True, hide_index=True)
         opts = slot_options(data)
         labels = [label for label, _ in opts]
         values = [val for _, val in opts]
@@ -1113,6 +1117,17 @@ if profile_mode in ("PRE", "POST"):
 
                         plot_line_profile(c.r[:nr], avg_profile[:nr], zlabel, "", height=520, avg=True, positive_only=True)
 
+                        summary = data.get("SummaryReport", [])
+                        if summary:
+                            df_summary = pd.DataFrame(summary)
+                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None) # normalizes each column name (trims spaces, makes lowercase), then check if it matches "slotno"
+                            if slot_col:
+                                styler = df_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_summary, use_container_width=True, hide_index=True)
+
                         col1, col2 = st.columns(2)
                         with col1:
                             plot_2d(X, Y, Z_surf, zlabel, c.Rmax, p_lo, p_hi, mask)
@@ -1158,6 +1173,16 @@ if profile_mode in ("PRE", "POST"):
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
                                 waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
                                 # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
+                        summary = data.get("SummaryReport", [])
+                        if summary:
+                            df_summary = pd.DataFrame(summary)
+                            slot_col = next((c for c in df_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_summary, use_container_width=True, hide_index=True)
                         st.markdown("---")
 
 # profile_mode == REMOVAL:
@@ -1165,6 +1190,17 @@ if profile_mode == "REMOVAL" and not comp_profiles:
     if not (PRE_DATA and POST_DATA and PRE_CACHE and POST_CACHE):
         st.info("Please upload both PRE and POST files.")
     else:
+        # col_pre, col_post = st.columns(2)
+        # with col_pre:
+        #     pre_summary = PRE_DATA.get("SummaryReport", [])
+        #     if pre_summary:
+        #         df_pre_summary = pd.DataFrame(pre_summary)
+        #         st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+        # with col_post:
+        #     post_summary = POST_DATA.get("SummaryReport", [])
+        #     if post_summary:
+        #         df_post_summary = pd.DataFrame(post_summary)
+        #         st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
         base_opts = slot_options(BASE_DATA)
@@ -1244,6 +1280,30 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                         height=520, avg=True,
                         overlay_pre=overlay_pre, overlay_post=overlay_post, positive_only=True
                     )
+
+                    col_pre, col_post = st.columns(2)
+                    with col_pre:
+                        pre_summary = PRE_DATA.get("SummaryReport", [])
+                        if pre_summary:
+                            df_pre_summary = pd.DataFrame(pre_summary)
+                            slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_pre_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                    with col_post:
+                        post_summary = POST_DATA.get("SummaryReport", [])
+                        if post_summary:
+                            df_post_summary = pd.DataFrame(post_summary)
+                            slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_post_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
 
                     view_key = f"show3d_avg_pair_{pre_slot}_{post_slot}"
                     btn_key  = f"btn_avg_pair_{pre_slot}_{post_slot}"
@@ -1347,6 +1407,30 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                             overlay_post=post_overlay_line,
                             waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
                         )
+
+                    col_pre, col_post = st.columns(2)
+                    with col_pre:
+                        pre_summary = PRE_DATA.get("SummaryReport", [])
+                        if pre_summary:
+                            df_pre_summary = pd.DataFrame(pre_summary)
+                            slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_pre_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(pre_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_pre_summary, use_container_width=True, hide_index=True)
+                    with col_post:
+                        post_summary = POST_DATA.get("SummaryReport", [])
+                        if post_summary:
+                            df_post_summary = pd.DataFrame(post_summary)
+                            slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
+                            if slot_col:
+                                styler = df_post_summary.style.apply(
+                                    lambda r: ['font-weight: bold' if str(r.get(slot_col, '')) == str(post_slotno) else '' for _ in r.index],axis=1)
+                                st.dataframe(styler, use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(df_post_summary, use_container_width=True, hide_index=True)
 
                     st.markdown("---")
 # ==================================================================
