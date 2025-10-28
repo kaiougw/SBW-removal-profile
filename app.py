@@ -1455,17 +1455,17 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         st.warning("Selected slot missing in cache.")
                         continue
 
-                    pre_c, post_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
+                    pre_c, post_c, base_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
                     r, theta = pre_c.r, pre_c.theta
                     pre_line, pre_surf, _ = graph_arrays(pre_c, graph)
                     post_line, post_surf, _ = graph_arrays(post_c, graph)
-                    R_line, _, _ = graph_arrays(R_c, graph)
-                    if pre_line.size == 0 or post_line.size == 0 or R_line.size == 0:
+                    base_line, _, _ = graph_arrays(base_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0 or base_line.size == 0:
                         st.warning("No overlapping data for comparison.")
                         continue
 
-                    nt = min(pre_line.shape[0], post_line.shape[0], R_line.shape[0])
-                    nr = min(pre_line.shape[1], post_line.shape[1], R_line.shape[1])
+                    nt = min(pre_line.shape[0], post_line.shape[0], base_line.shape[0])
+                    nr = min(pre_line.shape[1], post_line.shape[1], base_line.shape[1])
                     if nt == 0 or nr == 0:
                         st.warning("No overlapping data for comparison.")
                         continue
@@ -1474,7 +1474,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     theta = theta[:nt]
 
                     R_line = pre_line[:nt, :nr] - post_line[:nt, :nr]
-                    R_line_comp = R_line[:nt, :nr] - R_line
+                    R_line_comp = base_line[:nt, :nr] - R_line
 
                     R_surf_comp = np.vstack([R_line_comp, R_line_comp[:, ::-1]])
                     theta_full = (np.concatenate([theta, theta + np.pi]) % (2 * np.pi))
