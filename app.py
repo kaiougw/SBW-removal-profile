@@ -1010,7 +1010,7 @@ with colB:
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False, width="stretch")
 with colD:
-    comp_profiles = st.checkbox("Compare against a Base Wafer", key="comp_profiles", help="Predicted Profile = BASE - (PRE - POST)", value=False, disabled=profile_mode != "REMOVAL", width="stretch")
+    comp_profiles = st.checkbox("Apply removal to base wafer", key="comp_profiles", help="Predicted Profile = BASE - (PRE - POST)", value=False, disabled=profile_mode != "REMOVAL", width="stretch")
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
