@@ -1229,7 +1229,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
         with col3:
             sel_base = st.multiselect(
                 "BASE slots", base_labels, default=None, label_visibility="hidden", disabled=not comp_profiles,
-                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
+                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose slots"
             )
             base_keys = [base_values[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
 
@@ -1443,7 +1443,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
 # REMOVAL vs BASE ===================================================
 if profile_mode == "REMOVAL" and comp_profiles:
     if not (PRE_DATA and POST_DATA and BASE_DATA and PRE_CACHE and POST_CACHE and BASE_CACHE):
-        st.info("Please upload all PRE, POST, and BASE files.")
+        st.info("Please upload all PRE, POST, and Wafer files.")
     else:
         pre_opts = slot_options(PRE_DATA)
         post_opts = slot_options(POST_DATA)
@@ -1470,7 +1470,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
         with col3:
             sel_base = st.multiselect(
                 "BASE slots", base_labels, default=None, label_visibility="hidden",
-                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose BASE slots"
+                key="rem_base_slots", on_change=reset_plot, args=(plot_key,), placeholder="Choose slots"
             )
             base_keys = [base_values[base_labels.index(lbl)] for lbl in sel_base] if sel_base else []
 
