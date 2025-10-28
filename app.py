@@ -1010,7 +1010,7 @@ with colB:
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False, width="stretch")
 with colD:
-    comp_profiles = st.checkbox("Apply removal to base wafer", key="comp_profiles", help="Predicted Profile = BASE - (PRE - POST)", value=False, disabled=profile_mode != "REMOVAL", width="stretch")
+    comp_profiles = st.checkbox("Apply removal to a wafer", key="comp_profiles", help="Predicted Profile = Wafer - (PRE - POST)", value=False, disabled=profile_mode != "REMOVAL")
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
@@ -1018,7 +1018,7 @@ with colA:
 with colB:
     post_file = st.file_uploader("Choose a POST file (.sbw)", type=["sbw"], key="post")
 with colC:
-    base_file  = st.file_uploader("Choose a BASE file (.sbw)",  type=["sbw"], key="base", disabled= not comp_profiles)
+    base_file  = st.file_uploader("Choose a file (.sbw)",  type=["sbw"], key="base", disabled= not comp_profiles)
 
 
 # PRE vs POST ======================================================
@@ -1274,7 +1274,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
-                    st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno})")
+                    st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\nPRE: {pre_lot}({pre_slotno}), POST: {post_lot}({post_slotno})")
 
                     overlay_pre = pre_avg if overlay_prepost_lines else None
                     overlay_post = post_avg if overlay_prepost_lines else None
@@ -1364,7 +1364,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     pre_slotno = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('SlotNo', pre_slot)
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
 
-                    st.subheader(f"{graph_label(graph)} Removal Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno})")
+                    st.subheader(f"{graph_label(graph)} Removal Profile\nPRE: {pre_lot}({pre_slotno}), POST: {post_lot}({post_slotno})")
 
                     col1, col2 = st.columns(2)
                     with col1:
@@ -1522,7 +1522,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
                     base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
-                    st.subheader(f"Predicted Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno}), BASE:{base_lot}({base_slotno})")
+                    st.subheader(f"Predicted Profile\nPRE: {pre_lot}({pre_slotno}), POST: {post_lot}({post_slotno}), Wafer: {base_lot}({base_slotno})")
 
                     plot_line_profile(
                         pre_c.r[:nr], R_avg_comp, f"{graph_label(graph)} (µm)", "",
@@ -1612,7 +1612,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
                     st.subheader(
-                        f"Predicted Profile\nPRE:{pre_lot}({pre_slotno}), POST:{post_lot}({post_slotno}), BASE:{base_lot}({base_slotno})")
+                        f"Predicted Profile\nPRE: {pre_lot}({pre_slotno}), POST: {post_lot}({post_slotno}), Wafer: {base_lot}({base_slotno})")
 
                     col1, col2 = st.columns(2)
                     with col1:
