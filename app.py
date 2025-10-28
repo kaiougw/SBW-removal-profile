@@ -218,7 +218,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
             if endloop:
                 break
             line = fp.readline()
-    return sbw
+    return {'Lot': lot, 'WaferData': wd_dst, 'SummaryReport': getattr(sbwfile, 'SummaryReport', [])}
 
 def cleansbw(sbwfile) -> Dict[str, Any]:
     """
