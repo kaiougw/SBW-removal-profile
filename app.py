@@ -218,7 +218,7 @@ def parsesbw(sbwfile: str) -> sbwinfo:
             if endloop:
                 break
             line = fp.readline()
-    return {'Lot': lot, 'WaferData': wd_dst, 'SummaryReport': getattr(sbwfile, 'SummaryReport', [])}
+    return sbw
 
 def cleansbw(sbwfile) -> Dict[str, Any]:
     """
@@ -260,7 +260,7 @@ def cleansbw(sbwfile) -> Dict[str, Any]:
             'Angle': floatlist(angle),
             'Profiles': [floatlist2d(p) for p in profs],
         }
-    return {'Lot': lot, 'WaferData': wd_dst}
+    return {'Lot': lot, 'WaferData': wd_dst, 'SummaryReport': getattr(sbwfile, 'SummaryReport', [])}
 
 @st.cache_data(show_spinner=False) # Caches results of this function
 def parsecleansbw(uploaded_bytes: bytes) -> Dict[str, Any]:
