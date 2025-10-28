@@ -1010,7 +1010,7 @@ with colB:
 with colC:
     avg_profiles = st.checkbox("Average Profile", key="avg_profiles", disabled=False, width="stretch")
 with colD:
-    comp_profiles = st.checkbox("Compare against a Base Wafer", key="comp_profiles", help="Compare (PRE − POST) against BASE", value=False, disabled=profile_mode != "REMOVAL", width="stretch")
+    comp_profiles = st.checkbox("Compare against a Base Wafer", key="comp_profiles", help="Predicted Profile = BASE - (PRE - POST)", value=False, disabled=profile_mode != "REMOVAL", width="stretch")
 
 colA, colB, colC= st.columns([1, 1, 1])
 with colA:
@@ -1528,7 +1528,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         pre_c.r[:nr], R_avg_comp, f"{graph_label(graph)} (µm)", "",
                         height=520, avg=True, positive_only=True
                     )
-                    
+
                     col_pre, col_post, col_base = st.columns(3)
                     with col_pre:
                         pre_summary = PRE_DATA.get("SummaryReport", [])
