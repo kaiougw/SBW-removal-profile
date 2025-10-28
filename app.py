@@ -1471,7 +1471,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         continue
 
                     r = r[:nr]
-                    ang = theta[:nt]
+                    theta = theta[:nt]
 
                     R_line = pre_line[:nt, :nr] - post_line[:nt, :nr]
                     R_line_comp = base_line[:nt, :nr] - R_line
@@ -1508,6 +1508,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                             st.session_state[ang_key] = angle_options[0]
                         ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
                         idx = angle_options.index(ang_str)
+                        ang = theta[idx]
                         rotation_deg = float(ang_str.replace("°", ""))
 
                         line_comp = R_line_comp[idx, :]
