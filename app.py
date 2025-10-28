@@ -1209,28 +1209,27 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
-                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
-                    A_line, _, _ = graph_arrays(A_c, graph)
-                    B_line, _, _ = graph_arrays(B_c, graph)
-                    if A_line.size == 0 or B_line.size == 0:
+                    pre_c, post_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+                    pre_line, _, _ = graph_arrays(pre_c, graph)
+                    post_line, _, _ = graph_arrays(post_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0:
                         st.warning("No overlapping data for removal.")
                         continue
 
-                    nr = min(A_line.shape[1], B_line.shape[1], A_c.r.size, B_c.r.size)
+                    nr = min(pre_line.shape[1], post_line.shape[1], pre_c.r.size, post_c.r.size)
                     if nr == 0:
                         st.warning("No overlapping data for removal.")
                         continue
 
-                    A_avg = average_profile(A_line)[:nr]
-                    B_avg = average_profile(B_line)[:nr]
-                    Z_avg = A_avg - B_avg # Average PRE - Average POST
+                    pre_avg = average_profile(pre_line)[:nr]
+                    post_avg = average_profile(post_line)[:nr]
+                    R_avg = pre_avg - post_avg # Average PRE - Average POST
 
-                    XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
-                    XB, YB = B_c.X_mir[:, :nr], B_c.Y_mir[:, :nr]
-                    ZA = np.tile(A_avg, (XA.shape[0], 1))
-                    ZB = np.tile(B_avg, (XB.shape[0], 1))
-                    XZ, YZ = XA, YA
-                    Zrem = np.tile(Z_avg, (XZ.shape[0], 1))
+                    X_pre, Y_pre = pre_c.X_mir[:, :nr], pre_c.Y_mir[:, :nr]
+                    X_post, Y_post = post_c.X_mir[:, :nr], post_c.Y_mir[:, :nr]
+                    R_pre = np.tile(pre_avg, (X_pre.shape[0], 1))
+                    R_post = np.tile(post_avg, (X_post.shape[0], 1))
+                    Rem = np.tile(R_avg, (X_pre.shape[0], 1))
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
@@ -1238,10 +1237,10 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
                     st.subheader(f"{graph_label(graph, 'Average')} Removal Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno})")
 
-                    overlay_pre = A_avg if overlay_prepost_lines else None
-                    overlay_post = B_avg if overlay_prepost_lines else None
+                    overlay_pre = pre_avg if overlay_prepost_lines else None
+                    overlay_post = post_avg if overlay_prepost_lines else None
                     plot_line_profile(
-                        A_c.r[:nr], Z_avg, 'Removal (µm)', "",
+                        pre_c.r[:nr], R_avg, 'Removal (µm)', "",
                         height=520, avg=True,
                         overlay_pre=overlay_pre, overlay_post=overlay_post, positive_only=True
                     )
@@ -1258,15 +1257,15 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.session_state[view_key]:
-                            plot_3d(XA, YA, ZA, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
+                            plot_3d(X_pre, Y_pre, R_pre, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(XA, YA, ZA, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(X_pre, Y_pre, R_pre, graph_label(graph, "PRE"), pre_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     with col2:
                         if st.session_state[view_key]:
-                            plot_3d(XB, YB, ZB, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
+                            plot_3d(X_post, Y_post, R_post, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(XB, YB, ZB, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(X_post, Y_post, R_post, graph_label(graph, "POST"), post_c.Rmax, p_lo, p_hi, mask, height=300)
 
                     st.markdown("---")
 
@@ -1275,22 +1274,22 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     if pre_slot not in PRE_CACHE or post_slot not in POST_CACHE:
                         st.warning("Selected slot missing in cache.")
                         continue
-                    A_c, B_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
-                    r, theta = A_c.r, A_c.theta
-                    A_line, A_surf, _ = graph_arrays(A_c, graph)
-                    B_line, B_surf, _ = graph_arrays(B_c, graph)
-                    if A_line.size == 0 or B_line.size == 0:
+                    pre_c, post_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot]
+                    r, theta = pre_c.r, pre_c.theta
+                    pre_line, A_surf, _ = graph_arrays(pre_c, graph)
+                    post_line, B_surf, _ = graph_arrays(post_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0:
                         st.warning("No overlapping data for removal.")
                         continue
-                    nt = min(A_line.shape[0], B_line.shape[0])
-                    nr = min(A_line.shape[1], B_line.shape[1])
+                    nt = min(pre_line.shape[0], post_line.shape[0])
+                    nr = min(pre_line.shape[1], post_line.shape[1])
                     if nt == 0 or nr == 0:
                         st.warning("No overlapping data for removal.")
                         continue
                     r = r[:nr]
                     theta = theta[:nt]
-                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr] # PRE - POST
-                    Z_surf = np.vstack([Z_line, Z_line[:, ::-1]])
+                    R_line = pre_line[:nt, :nr] - post_line[:nt, :nr] # PRE - POST
+                    R_surf = np.vstack([R_line, R_line[:, ::-1]])
                     theta_full = (np.concatenate([theta, theta + np.pi]) % (2*np.pi))
                     T, Rm = np.meshgrid(theta_full, r, indexing='ij')
                     X = Rm*np.cos(T)
@@ -1307,7 +1306,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     col1, col2 = st.columns(2)
                     with col1:
                         rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                        plot_2d(X, Y, Z_surf, zlabel, rmax, p_lo, p_hi, mask)
+                        plot_2d(X, Y, R_surf, zlabel, rmax, p_lo, p_hi, mask)
                     with col2:
                         view_key = f"show3d_{pre_slot}_{post_slot}"
                         if view_key not in st.session_state:
@@ -1317,16 +1316,16 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                             st.session_state[view_key] = not st.session_state[view_key]
                             st.rerun()
                         if st.session_state[view_key]:
-                            plot_3d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
-                            plot_3d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
+                            plot_3d(pre_c.X_mir, pre_c.Y_mir, A_surf, graph_label(graph, "PRE"), p_lo, p_hi, mask, height=300)
+                            plot_3d(post_c.X_mir, post_c.Y_mir, B_surf, graph_label(graph, "POST"), p_lo, p_hi, mask, height=300)
                         else:
-                            plot_2d(A_c.X_mir, A_c.Y_mir, A_surf, graph_label(graph, "PRE"), A_c.Rmax, p_lo, p_hi, mask, height=300)
-                            plot_2d(B_c.X_mir, B_c.Y_mir, B_surf, graph_label(graph, "POST"), B_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(pre_c.X_mir, pre_c.Y_mir, A_surf, graph_label(graph, "PRE"), pre_c.Rmax, p_lo, p_hi, mask, height=300)
+                            plot_2d(post_c.X_mir, post_c.Y_mir, B_surf, graph_label(graph, "POST"), post_c.Rmax, p_lo, p_hi, mask, height=300)
 
-                    overlay_pre = A_line[:nt, :nr] if overlay_prepost_lines else None
-                    overlay_post = B_line[:nt, :nr] if overlay_prepost_lines else None
+                    overlay_pre = pre_line[:nt, :nr] if overlay_prepost_lines else None
+                    overlay_post = post_line[:nt, :nr] if overlay_prepost_lines else None
 
-                    plot_line_grid(r, theta, Z_line, zlabel, nrows=2, ncols=4, height=600,
+                    plot_line_grid(r, theta, R_line, zlabel, nrows=2, ncols=4, height=600,
                                 overlay_pre=overlay_pre, overlay_post=overlay_post)
 
                     if len(theta) > 0:
@@ -1337,7 +1336,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                         ang_str = st.select_slider("Angle", options=angle_options, key=ang_key)
                         idx = angle_options.index(ang_str)
                         ang = theta[idx]
-                        line = Z_line[idx, :]
+                        line = R_line[idx, :]
                         rotation_deg = float(ang_str.replace("°", ""))
                         pre_overlay_line = overlay_pre[idx, :] if overlay_pre is not None else None
                         post_overlay_line = overlay_post[idx, :] if overlay_post is not None else None
@@ -1406,28 +1405,28 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         st.warning("Selected slot missing in cache.")
                         continue
 
-                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
-                    A_line, _, _ = graph_arrays(A_c, graph)
-                    B_line, _, _ = graph_arrays(B_c, graph)
-                    R_line, _, _ = graph_arrays(R_c, graph)
-                    if A_line.size == 0 or B_line.size == 0 or R_line.size == 0:
+                    pre_c, post_c, base_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
+                    pre_line, _, _ = graph_arrays(pre_c, graph)
+                    post_line, _, _ = graph_arrays(post_c, graph)
+                    base_line, _, _ = graph_arrays(base_c, graph)
+                    if pre_line.size == 0 or post_line.size == 0 or base_line.size == 0:
                         st.warning("No overlapping data for comparison.")
                         continue
 
-                    nr = min(A_line.shape[1], B_line.shape[1], R_line.shape[1], A_c.r.size, B_c.r.size, R_c.r.size)
+                    nr = min(pre_line.shape[1], post_line.shape[1], base_line.shape[1], pre_c.r.size, post_c.r.size, base_c.r.size)
                     if nr == 0:
                         st.warning("No overlapping data for comparison.")
                         continue
 
-                    A_avg = average_profile(A_line)[:nr]
-                    B_avg = average_profile(B_line)[:nr]
-                    R_avg = average_profile(R_line)[:nr]
+                    pre_avg = average_profile(pre_line)[:nr]
+                    post_avg = average_profile(post_line)[:nr]
+                    base_avg = average_profile(base_line)[:nr]
 
-                    Z_avg = A_avg - B_avg
-                    Z_avg_cmp = R_avg - Z_avg
+                    R_avg = pre_avg - post_avg
+                    R_avg_comp = base_avg - R_avg
 
-                    XA, YA = A_c.X_mir[:, :nr], A_c.Y_mir[:, :nr]
-                    Zcmp_surf = np.tile(Z_avg_cmp, (XA.shape[0], 1))
+                    X_pre, Y_pre = pre_c.X_mir[:, :nr], pre_c.Y_mir[:, :nr]
+                    Zcomp_surf = np.tile(R_avg_comp, (X_pre.shape[0], 1))
 
                     pre_lot = PRE_DATA.get('WaferData', {}).get(pre_slot, {}).get('Lot', PRE_DATA.get('Lot', ''))
                     post_lot = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('Lot', POST_DATA.get('Lot', ''))
@@ -1436,19 +1435,18 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     post_slotno = POST_DATA.get('WaferData', {}).get(post_slot, {}).get('SlotNo', post_slot)
                     base_slotno = BASE_DATA.get('WaferData', {}).get(base_slot, {}).get('SlotNo', base_slot)
 
-                    st.subheader(
-                        f"Predicted Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})")
+                    st.subheader(f"Predicted Profile\n{pre_lot}({pre_slotno}), {post_lot}({post_slotno}), {base_lot}({base_slotno})")
 
                     plot_line_profile(
-                        A_c.r[:nr], Z_avg_cmp, f"{graph_label(graph)} (µm)", "",
+                        pre_c.r[:nr], R_avg_comp, f"{graph_label(graph)} (µm)", "",
                         height=520, avg=True, positive_only=True
                     )
 
-                    col1, col2 = st.columns(2)
+                    col1, col2 = st.columns(2) # <<<
                     with col1:
-                        plot_2d(XA, YA, Zcmp_surf, f"{graph_label(graph)} (µm)", A_c.Rmax, p_lo, p_hi, mask, height=420)
+                        plot_2d(X_pre, Y_pre, Zcomp_surf, f"{graph_label(graph)} (µm)", pre_c.Rmax, p_lo, p_hi, mask, height=420)
                     with col2:
-                        plot_3d(XA, YA, Zcmp_surf, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=420)
+                        plot_3d(X_pre, Y_pre, Zcomp_surf, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=420)
 
                     st.markdown("---")
             else:
@@ -1457,17 +1455,17 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         st.warning("Selected slot missing in cache.")
                         continue
 
-                    A_c, B_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
-                    r, theta = A_c.r, A_c.theta
-                    A_line, A_surf, _ = graph_arrays(A_c, graph)
-                    B_line, B_surf, _ = graph_arrays(B_c, graph)
+                    pre_c, post_c, R_c = PRE_CACHE[pre_slot], POST_CACHE[post_slot], BASE_CACHE[base_slot]
+                    r, theta = pre_c.r, pre_c.theta
+                    pre_line, A_surf, _ = graph_arrays(pre_c, graph)
+                    post_line, B_surf, _ = graph_arrays(post_c, graph)
                     R_line, _, _ = graph_arrays(R_c, graph)
-                    if A_line.size == 0 or B_line.size == 0 or R_line.size == 0:
+                    if pre_line.size == 0 or post_line.size == 0 or R_line.size == 0:
                         st.warning("No overlapping data for comparison.")
                         continue
 
-                    nt = min(A_line.shape[0], B_line.shape[0], R_line.shape[0])
-                    nr = min(A_line.shape[1], B_line.shape[1], R_line.shape[1])
+                    nt = min(pre_line.shape[0], post_line.shape[0], R_line.shape[0])
+                    nr = min(pre_line.shape[1], post_line.shape[1], R_line.shape[1])
                     if nt == 0 or nr == 0:
                         st.warning("No overlapping data for comparison.")
                         continue
@@ -1475,10 +1473,10 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     r = r[:nr]
                     theta = theta[:nt]
 
-                    Z_line = A_line[:nt, :nr] - B_line[:nt, :nr]
-                    Z_line_cmp = R_line[:nt, :nr] - Z_line
+                    R_line = pre_line[:nt, :nr] - post_line[:nt, :nr]
+                    R_line_cmp = R_line[:nt, :nr] - R_line
 
-                    Z_surf_cmp = np.vstack([Z_line_cmp, Z_line_cmp[:, ::-1]])
+                    R_surf_cmp = np.vstack([R_line_cmp, R_line_cmp[:, ::-1]])
                     theta_full = (np.concatenate([theta, theta + np.pi]) % (2 * np.pi))
                     Tcmp, Rmcmp = np.meshgrid(theta_full, r, indexing='ij')
                     Xcmp = Rmcmp * np.cos(Tcmp)
@@ -1497,11 +1495,11 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     col1, col2 = st.columns(2)
                     with col1:
                         rmax = float(np.max(r[np.isfinite(r)])) if np.isfinite(r).any() else 0.0
-                        plot_2d(Xcmp, Ycmp, Z_surf_cmp, f"{graph_label(graph)} (µm)", rmax, p_lo, p_hi, mask)
+                        plot_2d(Xcmp, Ycmp, R_surf_cmp, f"{graph_label(graph)} (µm)", rmax, p_lo, p_hi, mask)
                     with col2:
-                        plot_3d(Xcmp, Ycmp, Z_surf_cmp, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=600)
+                        plot_3d(Xcmp, Ycmp, R_surf_cmp, f"{graph_label(graph)} (µm)", p_lo, p_hi, mask, height=600)
 
-                    plot_line_grid(r, theta, Z_line_cmp, f"{graph_label(graph)} (µm)", nrows=2, ncols=4, height=600)
+                    plot_line_grid(r, theta, R_line_cmp, f"{graph_label(graph)} (µm)", nrows=2, ncols=4, height=600)
 
                     if len(theta) > 0:
                         angle_options = [f"{np.degrees(a) + 180:.1f}°" for a in theta]
@@ -1512,7 +1510,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         idx = angle_options.index(ang_str)
                         rotation_deg = float(ang_str.replace("°", ""))
 
-                        line_cmp = Z_line_cmp[idx, :]
+                        line_cmp = R_line_cmp[idx, :]
                         plot_line_profile(
                             r, line_cmp, f"{graph_label(graph)} (µm)", f"Angle {theta[idx] + 180:.1f}°",
                             height=520,
