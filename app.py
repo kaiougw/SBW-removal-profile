@@ -1288,7 +1288,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     with col_pre:
                         pre_summary = PRE_DATA.get("SummaryReport", [])
                         if pre_summary:
-                            st.markdown(f"PRE: {pre_lot}({pre_slotno})")
+                            st.caption(f"PRE: {pre_lot}({pre_slotno})")
                             df_pre_summary = pd.DataFrame(pre_summary)
                             slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
                             if slot_col:
@@ -1300,7 +1300,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     with col_post:
                         post_summary = POST_DATA.get("SummaryReport", [])
                         if post_summary:
-                            st.markdown(f"POST: {post_lot}({post_slotno})")
+                            st.caption(f"POST: {post_lot}({post_slotno})")
                             df_post_summary = pd.DataFrame(post_summary)
                             slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
                             if slot_col:
@@ -1417,7 +1417,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     with col_pre:
                         pre_summary = PRE_DATA.get("SummaryReport", [])
                         if pre_summary:
-                            st.markdown(f"PRE: {pre_lot}({pre_slotno})")
+                            st.caption(f"PRE: {pre_lot}({pre_slotno})")
                             df_pre_summary = pd.DataFrame(pre_summary)
                             slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
                             if slot_col:
@@ -1429,7 +1429,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                     with col_post:
                         post_summary = POST_DATA.get("SummaryReport", [])
                         if post_summary:
-                            st.markdown(f"POST: {post_lot}({post_slotno})")
+                            st.caption(f"POST: {post_lot}({post_slotno})")
                             df_post_summary = pd.DataFrame(post_summary)
                             slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
                             if slot_col:
@@ -1537,7 +1537,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     with col_pre:
                         pre_summary = PRE_DATA.get("SummaryReport", [])
                         if pre_summary:
-                            st.markdown(f"PRE: {pre_lot}({pre_slotno})")
+                            st.caption(f"PRE: {pre_lot}({pre_slotno})")
                             df_pre_summary = pd.DataFrame(pre_summary)
                             slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
                             if slot_col:
@@ -1549,7 +1549,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     with col_post:
                         post_summary = POST_DATA.get("SummaryReport", [])
                         if post_summary:
-                            st.markdown(f"POST: {post_lot}({post_slotno})")
+                            st.caption(f"POST: {post_lot}({post_slotno})")
                             df_post_summary = pd.DataFrame(post_summary)
                             slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
                             if slot_col:
@@ -1561,7 +1561,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                     with col_base:
                         base_summary = BASE_DATA.get("SummaryReport", [])
                         if base_summary:
-                            st.markdown(f"Wafer: {base_lot}({base_slotno})")
+                            st.caption(f"Wafer: {base_lot}({base_slotno})")
                             df_base_summary = pd.DataFrame(base_summary)
                             slot_col = next((c for c in df_base_summary.columns if c.strip().lower() in "slotno"), None)
                             if slot_col:
@@ -1652,7 +1652,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         with col_pre:
                             pre_summary = PRE_DATA.get("SummaryReport", [])
                             if pre_summary:
-                                st.markdown(f"PRE: {pre_lot}({pre_slotno})")
+                                st.caption(f"PRE: {pre_lot}({pre_slotno})")
                                 df_pre_summary = pd.DataFrame(pre_summary)
                                 slot_col = next((c for c in df_pre_summary.columns if c.strip().lower() in "slotno"), None)
                                 if slot_col:
@@ -1666,7 +1666,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         with col_post:
                             post_summary = POST_DATA.get("SummaryReport", [])
                             if post_summary:
-                                st.markdown(f"POST: {post_lot}({post_slotno})")
+                                st.caption(f"POST: {post_lot}({post_slotno})")
                                 df_post_summary = pd.DataFrame(post_summary)
                                 slot_col = next((c for c in df_post_summary.columns if c.strip().lower() in "slotno"), None)
                                 if slot_col:
@@ -1680,7 +1680,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         with col_base:
                             base_summary = BASE_DATA.get("SummaryReport", [])
                             if base_summary:
-                                st.markdown(f"Wafer: {base_lot}({base_slotno})")
+                                st.caption(f"Wafer: {base_lot}({base_slotno})")
                                 df_base_summary = pd.DataFrame(base_summary)
                                 slot_col = next((c for c in df_base_summary.columns if c.strip().lower() in "slotno"),
                                                 None)
