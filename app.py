@@ -604,7 +604,7 @@ def masknotch(Z: np.ndarray, k: float=4): # Outlier threshold = 4
     return Zm
 
 # Image Overlay (for Line Scanning Direction)
-def overlay_images(waferimg_url: str, arrowimg_url: str, arrowimg_size: int = 80, rotation_deg: float = 0.0) -> Image.Image:
+def overlay_images(waferimg_url: str, arrowimg_url: str, arrowimg_size: int = 60, rotation_deg: float = 0.0) -> Image.Image:
 # Overlay arrow on wafer image and rotate by rotation_deg
     waferimg = Image.open(BytesIO(requests.get(waferimg_url).content)).convert("RGBA")
     arrowimg = Image.open(BytesIO(requests.get(arrowimg_url).content)).convert("RGBA")
