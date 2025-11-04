@@ -856,14 +856,14 @@ def plot_line_profile(r: np.ndarray, line: np.ndarray, zlabel: str, title: str, 
             st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": True})
         with col_img:
             combined = overlay_images(
-                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
+                "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.png",
                 "https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/arrowimg.png",
                 arrowimg_size=225,
                 rotation_deg=rotation_deg
             )
 
             # combined = overlay_images(
-            #     r"D:\source\ntcpdr\img\waferimg.jpg",
+            #     r"D:\source\ntcpdr\img\waferimg.png",
             #     r"D:\source\ntcpdr\img\arrowimg.png",
             #     arrowimg_size=225,
             #     rotation_deg=rotation_deg
@@ -1172,8 +1172,8 @@ if profile_mode in ("PRE", "POST"):
                             line = Z_line[idx, :]
                             rotation_deg = float(ang_str.replace("°", ""))
                             plot_line_profile(r, line, zlabel, f"Angle {ang+180:.1f}°", height=520,
-                                waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg)
-                                # waferimg=r"D:\source\ntcpdr\img\waferimg.jpg"
+                                waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.png", rotation_deg=rotation_deg)
+                                # waferimg=r"D:\source\ntcpdr\img\waferimg.png"
 
                         summary = data.get("SummaryReport", [])
                         if summary:
@@ -1410,7 +1410,7 @@ if profile_mode == "REMOVAL" and not comp_profiles:
                             height=520,
                             overlay_pre=pre_overlay_line,
                             overlay_post=post_overlay_line,
-                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg", rotation_deg=rotation_deg
+                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.png", rotation_deg=rotation_deg
                         )
 
                     col_pre, col_post = st.columns(2)
@@ -1644,7 +1644,7 @@ if profile_mode == "REMOVAL" and comp_profiles:
                         plot_line_profile(
                             r, line_comp, f"{graph_label(graph)} (µm)", f"Angle {ang + 180:.1f}°",
                             height=520,
-                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.jpg",
+                            waferimg="https://raw.githubusercontent.com/kaijwou/SBW-removal-profile/main/waferimg.png",
                             rotation_deg=rotation_deg
                         )
 
