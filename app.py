@@ -608,7 +608,7 @@ def overlay_images(waferimg_url: str, arrowimg_url: str, arrowimg_size: int = 80
 # Overlay arrow on wafer image and rotate by rotation_deg
     waferimg = Image.open(BytesIO(requests.get(waferimg_url).content)).convert("RGBA")
     arrowimg = Image.open(BytesIO(requests.get(arrowimg_url).content)).convert("RGBA")
-    arrowimg = arrowimg.resize((arrowimg_size, arrowimg_size*2), Image.LANCZOS)
+    arrowimg = arrowimg.resize((arrowimg_size, arrowimg_size*3), Image.LANCZOS)
     arrowimg = arrowimg.rotate(rotation_deg, expand=True) # rotate arrow by rotation_deg set by user through select_slider.
     w, h = waferimg.size
     pos = ((w - arrowimg.width) // 2, (h - arrowimg.height) // 2) # arrowimg centered inside waferimg.
